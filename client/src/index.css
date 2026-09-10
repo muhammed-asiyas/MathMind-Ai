@@ -1,0 +1,268 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --motion-fast: 160ms;
+  --motion-base: 280ms;
+  --motion-slow: 650ms;
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-press: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+  min-width: 100%;
+  background: #020617;
+  overscroll-behavior-x: none;
+}
+
+body {
+  margin: 0;
+  min-width: 100%;
+  min-height: 100vh;
+  background: #020617;
+  overflow-wrap: anywhere;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background-image:
+    radial-gradient(circle at 8% 0%, rgba(79, 70, 229, 0.12), transparent 28rem),
+    radial-gradient(circle at 92% 18%, rgba(6, 182, 212, 0.07), transparent 24rem);
+  background-attachment: fixed;
+}
+
+#root {
+  min-width: 100%;
+  min-height: 100vh;
+}
+
+header > nav {
+  animation: nav-enter 700ms var(--ease-smooth) both;
+}
+
+main {
+  animation: page-enter 700ms var(--ease-smooth) both;
+}
+
+main > * {
+  animation: content-enter 700ms var(--ease-smooth) both;
+}
+
+main > *:nth-child(2) { animation-delay: 70ms; }
+main > *:nth-child(3) { animation-delay: 140ms; }
+main > *:nth-child(4) { animation-delay: 210ms; }
+
+img,
+video,
+iframe {
+  animation: media-enter 550ms var(--ease-smooth) both;
+}
+
+::selection {
+  color: #e0e7ff;
+  background: rgba(99, 102, 241, 0.55);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  transition-timing-function: var(--ease-smooth);
+}
+
+button:not(:disabled):active,
+a:active {
+  transform: translateY(1px) scale(0.985);
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-press);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #67e8f9;
+  outline-offset: 3px;
+}
+
+.motion-surface {
+  transition:
+    transform var(--motion-base) var(--ease-smooth),
+    border-color var(--motion-base) var(--ease-smooth),
+    background-color var(--motion-base) var(--ease-smooth),
+    box-shadow var(--motion-base) var(--ease-smooth);
+}
+
+.motion-surface:hover {
+  transform: translateY(-4px);
+  border-color: rgba(129, 140, 248, 0.42);
+  box-shadow: 0 18px 45px rgba(2, 6, 23, 0.25);
+}
+
+.motion-button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition:
+    transform var(--motion-fast) var(--ease-press),
+    filter var(--motion-base) var(--ease-smooth),
+    box-shadow var(--motion-base) var(--ease-smooth);
+}
+
+.motion-button::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  background: linear-gradient(110deg, transparent 25%, rgba(255, 255, 255, 0.16), transparent 75%);
+  transform: translateX(-120%);
+  transition: transform 600ms var(--ease-smooth);
+}
+
+.motion-button:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 10px 28px rgba(79, 70, 229, 0.2);
+}
+
+.motion-button:hover::after {
+  transform: translateX(120%);
+}
+
+.reveal-on-scroll {
+  animation: reveal-up var(--motion-slow) var(--ease-smooth) both;
+}
+
+@supports (animation-timeline: view()) {
+  .reveal-on-scroll {
+    animation-timeline: view();
+    animation-range: entry 0% cover 28%;
+  }
+
+  main > * {
+    animation-timeline: view();
+    animation-range: entry 0% cover 24%;
+  }
+}
+
+.stagger-grid > * {
+  animation: reveal-up var(--motion-slow) var(--ease-smooth) both;
+}
+
+.stagger-grid > *:nth-child(2) { animation-delay: 70ms; }
+.stagger-grid > *:nth-child(3) { animation-delay: 140ms; }
+.stagger-grid > *:nth-child(4) { animation-delay: 210ms; }
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+main a:not(.motion-button),
+main button:not(.motion-button) {
+  transition:
+    color var(--motion-base) var(--ease-smooth),
+    background-color var(--motion-base) var(--ease-smooth),
+    border-color var(--motion-base) var(--ease-smooth),
+    transform var(--motion-fast) var(--ease-press),
+    box-shadow var(--motion-base) var(--ease-smooth);
+}
+
+main a:not(.motion-button):hover,
+main button:not(.motion-button):hover {
+  transform: translateY(-2px);
+}
+
+input,
+select,
+textarea {
+  transition:
+    border-color var(--motion-base) var(--ease-smooth),
+    background-color var(--motion-base) var(--ease-smooth),
+    box-shadow var(--motion-base) var(--ease-smooth),
+    transform var(--motion-fast) var(--ease-press);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  transform: translateY(-1px);
+}
+
+@keyframes nav-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes media-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
