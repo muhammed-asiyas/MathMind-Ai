@@ -1,5 +1,42 @@
 const User = require("../models/User");
 
+const getLeaderboard = async (req, res) => {
+  try {
+    const students = await User.find({ role: "student" })
+      .select("firstName lastName xp level streak")
+      .sort({ xp: -1, streak: -1, createdAt: 1 })
+      .lean();
+
+    const rankedStudents = students.map((student, index) => ({
+      id: String(student._id),
+      name: `${student.firstName} ${student.lastName?.charAt(0) || ""}.`.trim(),
+      xp: student.xp || 0,
+      level: student.level || 1,
+      streak: student.streak || 0,
+      rank: index + 1,
+    }));
+
+    const currentUserId = String(req.user.userId);
+    const currentStudent = rankedStudents.find((student) => student.id === currentUserId) || null;
+    const topStudents = rankedStudents.slice(0, 10);
+
+    if (currentStudent && !topStudents.some((student) => student.id === currentUserId)) {
+      topStudents.push(currentStudent);
+    }
+
+    return res.status(200).json({
+      success: true,
+      period: "all-time",
+      students: topStudents,
+      currentStudent,
+      totalStudents: rankedStudents.length,
+    });
+  } catch (error) {
+    console.error("LEADERBOARD ERROR:", error);
+    return res.status(500).json({ success: false, message: "Failed to load leaderboard" });
+  }
+};
+
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select(
@@ -55,6 +92,7 @@ const updateProfile = async (req, res) => {
 };
 
 module.exports = {
+  getLeaderboard,
   getProfile,
   updateProfile,
 };

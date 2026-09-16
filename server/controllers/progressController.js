@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Progress = require("../models/Progress");
 const DailyProgress = require("../models/DailyProgress");
 const User = require("../models/User");
+const { getLearningProfile } = require("../services/learningLevelService");
 
 const getToday = () => new Date().toISOString().slice(0, 10);
 
@@ -22,6 +23,17 @@ const getDailyProgress = async (req, res) => {
 	} catch (error) {
 		console.error("GET DAILY PROGRESS ERROR:", error);
 		return res.status(500).json({ success: false, message: "Failed to fetch daily progress" });
+	}
+};
+
+const getLearningProfileForStudent = async (req, res) => {
+	try {
+		const user = await User.findById(req.user.userId).select("xp level preferredTopic");
+		if (!user) return res.status(404).json({ success: false, message: "Student not found" });
+		return res.status(200).json({ success: true, profile: getLearningProfile(user.xp, user.preferredTopic) });
+	} catch (error) {
+		console.error("GET LEARNING PROFILE ERROR:", error);
+		return res.status(500).json({ success: false, message: "Failed to fetch learning profile" });
 	}
 };
 
@@ -99,11 +111,14 @@ const saveQuestionProgress = async (req, res) => {
 		);
 
 		const scoreChange = isCorrect ? 10 : -5;
+		const currentUser = await User.findById(req.user.userId).select("firstName lastName email role xp level streak dailyGoal preferredTopic");
+		const nextXp = Math.max(0, (currentUser?.xp || 0) + scoreChange);
+		const nextLevel = getLearningProfile(nextXp, currentUser?.preferredTopic).level;
 		const user = await User.findByIdAndUpdate(
 			req.user.userId,
-			{ $inc: { xp: scoreChange } },
+			{ $set: { xp: nextXp, level: nextLevel } },
 			{ new: true }
-		).select("firstName lastName email role xp level streak dailyGoal");
+		).select("firstName lastName email role xp level streak dailyGoal preferredTopic");
 
 		return res.status(200).json({
 			success: true,
@@ -120,6 +135,7 @@ const saveQuestionProgress = async (req, res) => {
 
 module.exports = {
 	getDailyProgress,
+	getLearningProfileForStudent,
 	getTopicProgress,
 	saveQuestionProgress,
 };

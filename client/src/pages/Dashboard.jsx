@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Flame, LogOut, X } from "lucide-react";
+import { Flame, LogOut, X, Trophy, Medal, Users, TrendingUp } from "lucide-react";
 import api from "../services/api";
 import { useAuth } from "../context/authContext";
 import Navbar from "../components/Navbar";
@@ -16,6 +16,8 @@ function Dashboard() {
   const [topicsLoading, setTopicsLoading] = useState(true);
   const dailyGoal = user?.dailyGoal || 10;
   const [dailyProgress, setDailyProgress] = useState({ attempts: 0, limit: dailyGoal });
+  const [learningProfile, setLearningProfile] = useState(null);
+  const [leaderboard, setLeaderboard] = useState({ students: [], currentStudent: null, totalStudents: 0 });
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [streakPopupDismissed, setStreakPopupDismissed] = useState(false);
   const userKey = user?.id || user?._id || user?.email;
@@ -29,13 +31,17 @@ function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [topicsResponse, dailyResponse] = await Promise.all([
+        const [topicsResponse, dailyResponse, learningProfileResponse, leaderboardResponse] = await Promise.all([
           api.get("/topics"),
           api.get("/progress/daily"),
+          api.get("/progress/learning-profile"),
+          api.get("/users/leaderboard").catch(() => ({ data: { students: [], currentStudent: null, totalStudents: 0 } })),
         ]);
 
         setTopics(topicsResponse.data.topics);
         setDailyProgress(dailyResponse.data.daily || { attempts: 0, limit: dailyGoal });
+        setLearningProfile(learningProfileResponse.data.profile || null);
+        setLeaderboard(leaderboardResponse.data || { students: [], currentStudent: null, totalStudents: 0 });
       } catch (error) {
         console.error("Dashboard Error:", error);
       } finally {
@@ -121,8 +127,9 @@ function Dashboard() {
             </p>
 
             <p className="mt-1 text-3xl font-black">
-              {user?.level || 1}
+              {learningProfile?.level || user?.level || 1}
             </p>
+            <p className="mt-1 text-xs font-semibold text-indigo-300">{learningProfile?.title || "Foundation"}</p>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
@@ -154,6 +161,91 @@ function Dashboard() {
 
         </section>
 
+        <section className="motion-surface reveal-on-scroll mt-10 rounded-3xl border border-amber-300/15 bg-gradient-to-br from-amber-300/[0.08] via-white/[0.04] to-indigo-400/[0.06] p-6 sm:p-8">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-amber-300"><Trophy size={15} /> Learning leaderboard</p>
+              <h2 className="mt-2 text-2xl font-black sm:text-3xl">Learn consistently. Move up.</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">All-time XP rankings reward completed practice, not just one strong day.</p>
+            </div>
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-slate-950/35 px-3 py-2 text-xs font-semibold text-slate-300"><Users size={14} /> {leaderboard.totalStudents} learners</div>
+          </div>
+
+          {leaderboard.students.length > 0 ? (
+            <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.8fr]">
+              <div className="space-y-2">
+                {leaderboard.students.map((student, index) => {
+                  const isCurrentStudent = student.id === String(user?.id || user?._id);
+                  const isPodium = student.rank <= 3;
+                  return (
+                    <motion.div
+                      key={student.id}
+                      className={`flex items-center gap-3 rounded-2xl border px-4 py-3 transition ${isCurrentStudent ? "border-cyan-300/40 bg-cyan-300/10" : "border-white/10 bg-slate-950/25 hover:bg-white/[0.06]"}`}
+                      initial={{ opacity: 0, x: -18 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, amount: 0.4 }}
+                      transition={{ delay: index * 0.045, duration: 0.35 }}
+                    >
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black ${student.rank === 1 ? "bg-amber-300 text-slate-950" : student.rank === 2 ? "bg-slate-300 text-slate-950" : student.rank === 3 ? "bg-orange-400 text-slate-950" : "bg-white/10 text-slate-300"}`}>
+                        {isPodium ? <Medal size={17} /> : student.rank}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-white">{student.name}{isCurrentStudent && <span className="ml-2 text-xs font-semibold text-cyan-300">You</span>}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">Level {student.level} · {student.streak} day streak</p>
+                      </div>
+                      <div className="text-right"><p className="text-sm font-black text-amber-200">{student.xp.toLocaleString()} XP</p><p className="text-[10px] uppercase tracking-wider text-slate-500">earned</p></div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-slate-950/35 p-5">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-200"><TrendingUp size={17} className="text-cyan-300" /> Your position</div>
+                  {leaderboard.currentStudent ? (
+                    <>
+                      <p className="mt-5 text-5xl font-black text-white">#{leaderboard.currentStudent.rank}</p>
+                      <p className="mt-2 text-sm leading-6 text-slate-400">Keep completing practice questions to climb the rankings.</p>
+                    </>
+                  ) : <p className="mt-5 text-sm leading-6 text-slate-400">Complete your first practice question to join the leaderboard.</p>}
+                </div>
+                <p className="mt-6 text-xs font-semibold uppercase tracking-wider text-cyan-300">Ranked by lifetime XP</p>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-6 rounded-2xl border border-dashed border-white/15 bg-slate-950/25 p-8 text-center">
+              <Trophy className="mx-auto text-amber-300" size={30} />
+              <p className="mt-3 font-bold text-slate-200">The leaderboard is ready for its first learner.</p>
+              <p className="mt-1 text-sm text-slate-500">Complete a practice question to start earning XP.</p>
+            </div>
+          )}
+        </section>
+
+        <section className="mt-10 grid gap-6 lg:grid-cols-[1fr_1fr]">
+          <div className="rounded-3xl border border-cyan-300/15 bg-cyan-300/[0.06] p-6 sm:p-8">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">Your learning level</p>
+                <h2 className="mt-2 text-2xl font-black">Level {learningProfile?.level || user?.level || 1}: {learningProfile?.title || "Foundation"}</h2>
+              </div>
+              <span className="rounded-full bg-cyan-300/15 px-3 py-1 text-xs font-bold text-cyan-200">{learningProfile?.progressPercent || 0}% to next</span>
+            </div>
+            <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-950/60">
+              <div className="h-full rounded-full bg-cyan-300 transition-all duration-500" style={{ width: `${learningProfile?.progressPercent || 0}%` }} />
+            </div>
+            <p className="mt-3 text-sm text-slate-400">
+              {learningProfile?.nextLevel ? `${learningProfile.nextLevel.requiredXp - (learningProfile.xp || 0)} XP until Level ${learningProfile.nextLevel.level} ${learningProfile.nextLevel.title}.` : "You have reached the highest learning level."}
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-emerald-300/15 bg-emerald-300/[0.06] p-6 sm:p-8">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Use maths in real life</p>
+            <h2 className="mt-2 text-2xl font-black">Today&apos;s application</h2>
+            <p className="mt-4 leading-7 text-slate-300">{learningProfile?.realWorldApplication || "Practice a maths skill and connect it to a real decision, measurement, or plan."}</p>
+            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-emerald-300">Focus: {learningProfile?.recommendedTopic || user?.preferredTopic || "Algebra"}</p>
+          </div>
+        </section>
+
         {/* AI Tutor + Daily Goal */}
         <section className="mt-10 grid gap-6 lg:grid-cols-3">
 
@@ -176,6 +268,8 @@ function Dashboard() {
               </p>
 
               <button
+                type="button"
+                onClick={() => navigate("/ai-tutor")}
                 className="mt-7 rounded-xl bg-white px-6 py-3 font-bold text-indigo-600 transition hover:bg-indigo-50"
               >
                 Ask AI Tutor →

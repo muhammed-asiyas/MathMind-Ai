@@ -8,8 +8,12 @@ import Dashboard from "./pages/Dashboard";
 import Lessons from "./pages/Lessons";
 import TopicDetails from "./pages/student/TopicDetails";
 import Profile from "./pages/Profile";
+import AITutor from "./pages/student/AITutor";
+import StudyHub from "./pages/StudyHub";
+import Admin from "./pages/Admin";
 
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import PublicRoute from "./components/PublicRoute";
 import { AuthProvider } from "./context/AuthContext.jsx";
 
@@ -75,11 +79,47 @@ function App() {
         />
 
         <Route
+          path="/topics/:topicId/subtopics/:lessonId"
+          element={
+            <ProtectedRoute>
+              <TopicDetails />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/profile"
           element={
             <ProtectedRoute>
               <Profile />
             </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/study-hub"
+          element={
+            <ProtectedRoute>
+              <StudyHub />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ai-tutor"
+          element={
+            <ProtectedRoute>
+              <AITutor />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <Admin />
+            </AdminRoute>
           }
         />
         </Routes>

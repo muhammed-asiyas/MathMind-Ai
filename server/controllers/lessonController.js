@@ -92,8 +92,31 @@ const createLesson = async (req, res) => {
   }
 };
 
+const deleteLesson = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid lesson ID." });
+    }
+
+    const lesson = await Lesson.findById(id);
+    if (!lesson) {
+      return res.status(404).json({ success: false, message: "Lesson not found." });
+    }
+
+    await Lesson.findByIdAndDelete(id);
+
+    return res.status(200).json({ success: true, message: "Lesson removed successfully." });
+  } catch (error) {
+    console.error("DELETE LESSON ERROR:", error);
+    return res.status(500).json({ success: false, message: "Failed to delete lesson." });
+  }
+};
+
 module.exports = {
   getLessons,
   getLessonById,
   createLesson,
+  deleteLesson,
 };

@@ -85,6 +85,14 @@ a {
   transition-timing-function: var(--ease-smooth);
 }
 
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 button:not(:disabled):active,
 a:active {
   transform: translateY(1px) scale(0.985);
@@ -223,6 +231,42 @@ input:focus,
 select:focus,
 textarea:focus {
   transform: translateY(-1px);
+}
+
+.admin-input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.75rem;
+  background: rgba(2, 6, 23, 0.55);
+  padding: 0.75rem 1rem;
+  color: #f8fafc;
+  outline: none;
+}
+
+.admin-input::placeholder {
+  color: #64748b;
+}
+
+.admin-input:focus {
+  border-color: rgba(103, 232, 249, 0.65);
+  box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.1);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 @keyframes nav-enter {

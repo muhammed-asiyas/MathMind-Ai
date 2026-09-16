@@ -410,6 +410,19 @@ const lessonGuides = {
       { prompt: "LCM of 3 and 4?", answer: "12", hint: "3 x 4 = 12." },
     ],
   },
+  "statistics-data-basics": {
+    eyebrow: "Statistics · Data Basics",
+    title: "Statistics Data Basics",
+    summary: "Read tables, charts, and data displays to understand what the numbers are saying.",
+    idea: "Statistics helps us collect, organize, compare, and communicate information from data.",
+    example: "Total frequency = add every category; range = largest value - smallest value",
+    videoUrl: "https://www.youtube.com/embed/qBigTkBLU6g",
+    videoPool: ["https://www.youtube.com/embed/qBigTkBLU6g"],
+    visual: "statistics",
+    questions: [
+      { prompt: "Find the range of 4, 9, 12, 7, and 6.", answer: "8", hint: "Subtract the smallest value from the largest." },
+    ],
+  },
 };
 
 const topicGuideKeys = {
@@ -417,6 +430,7 @@ const topicGuideKeys = {
   geometry: ["angles-lines", "area-perimeter", "circles-pythagoras"],
   fraction: ["equivalent-simplification", "adding-subtracting", "multiplying-dividing"],
   arithmetic: ["place-value-operations", "multiplication-division", "factors-multiples-gcf-lcm"],
+  statistics: ["statistics-data-basics", "statistics-averages-spread", "statistics-probability-charts"],
 };
 
 function getLessonGuide(topicTitle = "", lessonTitle = "", lessonOrder = 1) {
@@ -438,6 +452,9 @@ function getLessonGuide(topicTitle = "", lessonTitle = "", lessonOrder = 1) {
   if (normTitle.includes("multipl") || normTitle.includes("divid") || normTitle.includes("reciprocal")) return lessonGuides["multiplying-dividing"];
   if (normTitle.includes("place value") || normTitle.includes("operation")) return lessonGuides["place-value-operations"];
   if (normTitle.includes("factor") || normTitle.includes("multiple") || normTitle.includes("gcf") || normTitle.includes("lcm")) return lessonGuides["factors-multiples-gcf-lcm"];
+  if (normTitle.includes("data") || normTitle.includes("average") || normTitle.includes("spread") || normTitle.includes("probability") || normTitle.includes("chart")) {
+    return lessonGuides["statistics-data-basics"];
+  }
 
   // ── Direct slug key fallback ─────────────────────────────────────────────────
   if (lessonGuides[normTitle]) return lessonGuides[normTitle];
@@ -453,6 +470,7 @@ function getLessonGuide(topicTitle = "", lessonTitle = "", lessonOrder = 1) {
   if (normTopic.includes("geometry")) return lessonGuides["angles-lines"];
   if (normTopic.includes("fraction")) return lessonGuides["equivalent-simplification"];
   if (normTopic.includes("arithmetic")) return lessonGuides["place-value-operations"];
+  if (normTopic.includes("statistic")) return lessonGuides["statistics-data-basics"];
 
   return lessonGuides["variables-expressions"];
 }
@@ -489,16 +507,18 @@ function MathVisual({ type }) {
     );
   }
 
-  if (type === "algebra") {
+  if (type === "statistics") {
     return (
-      <div className="flex h-52 items-center justify-center rounded-2xl bg-indigo-500/10">
-        <motion.div
-          className="flex items-center gap-3 text-2xl font-black text-indigo-100"
-          animate={{ y: [0, -8, 0] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <span>3x</span><span className="text-indigo-300">+</span><span>2</span><span className="text-indigo-300">=</span><span>14</span>
-        </motion.div>
+      <div className="flex h-52 items-end justify-center gap-3 rounded-2xl bg-cyan-500/10 px-10 pb-8">
+        {[40, 70, 55, 90, 62].map((height, index) => (
+          <motion.div
+            key={index}
+            className="w-8 rounded-t-lg bg-cyan-300/80"
+            initial={{ height: 0 }}
+            animate={{ height: `${height}px` }}
+            transition={{ duration: 0.5, delay: index * 0.08 }}
+          />
+        ))}
       </div>
     );
   }
@@ -612,9 +632,9 @@ function QuestionAnimation({ question, questionIndex, topicType }) {
 }
 
 function TopicDetails() {
-  const { topicId } = useParams();
+  const { topicId, lessonId: routeLessonId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeLessonId = searchParams.get("lessonId") || "";
+  const activeLessonId = routeLessonId || searchParams.get("lessonId") || "";
 
   const { updateUser } = useAuth();
   const [topic, setTopic] = useState(null);
@@ -624,6 +644,7 @@ function TopicDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [practiceLevel, setPracticeLevel] = useState("Beginner");
   const [answer, setAnswer] = useState("");
   const [answerState, setAnswerState] = useState("");
   const [showVisualExplanation, setShowVisualExplanation] = useState(false);
@@ -659,18 +680,27 @@ function TopicDetails() {
     fetchTopic();
   }, [topicId]);
 
+  const currentTopicLessons = useMemo(() => {
+    const currentTopicId = String(topicId || "");
+
+    return lessons.filter((lesson) => {
+      const lessonTopicId = typeof lesson.topic === "string" ? lesson.topic : lesson.topic?._id;
+      return !currentTopicId || String(lessonTopicId || "") === currentTopicId || String(lesson.topic?._id || lesson.topic || "") === currentTopicId;
+    });
+  }, [lessons, topicId]);
+
   // Find the active lesson object by its ID, then resolve the guide by title
   const activeLessonObject = useMemo(
-    () => lessons.find((l) => (l._id || l.id) === activeLessonId) || lessons[0] || null,
-    [lessons, activeLessonId]
+    () => currentTopicLessons.find((l) => (l._id || l.id) === activeLessonId) || currentTopicLessons[0] || null,
+    [currentTopicLessons, activeLessonId]
   );
 
   const activeLessonOrder = useMemo(() => {
-    const lessonIndex = lessons.findIndex(
+    const lessonIndex = currentTopicLessons.findIndex(
       (lesson) => (lesson._id || lesson.id) === (activeLessonObject?._id || activeLessonObject?.id)
     );
     return activeLessonObject?.order > 0 ? activeLessonObject.order : lessonIndex + 1;
-  }, [lessons, activeLessonObject]);
+  }, [currentTopicLessons, activeLessonObject]);
 
   useEffect(() => {
     const lessonId = activeLessonObject?._id || activeLessonObject?.id;
@@ -697,14 +727,24 @@ function TopicDetails() {
     [topic?.title, activeLessonObject?.title, activeLessonOrder]
   );
 
+  const lessonVideoUrl = activeLessonObject?.videoUrl || guide.videoUrl;
+
   const activeLessonKey = String(activeLessonObject?._id || activeLessonObject?.id || "");
-  const questionBank = lessonQuestionLessonId === activeLessonKey && lessonQuestions.length > 0
+  const allQuestionBank = lessonQuestionLessonId === activeLessonKey && lessonQuestions.length > 0
     ? lessonQuestions
-    : guide.questions;
+    : guide.questions.map((question, index) => ({
+      ...question,
+      questionIndex: index,
+      difficulty: index < 15 ? "Beginner" : index < 30 ? "Intermediate" : "Hard",
+    }));
+  const questionBank = allQuestionBank.filter((question) => (question.difficulty || "Beginner") === practiceLevel);
   const currentQuestion = questionBank[questionIndex] || questionBank[0];
+  const levelQuestionIndexes = new Set(questionBank.map((question) => question.questionIndex));
+  const levelAttempts = topicAttempts.filter((index) => levelQuestionIndexes.has(index));
+  const levelCorrect = topicCorrect.filter((index) => levelQuestionIndexes.has(index));
 
   const progressPercentage = questionBank.length > 0
-    ? Math.round((topicCorrect.length / questionBank.length) * 100)
+    ? Math.round((levelCorrect.length / questionBank.length) * 100)
     : 0;
 
   const questionLearningPath = [
@@ -722,7 +762,7 @@ function TopicDetails() {
 
     try {
       const response = await api.post(`/progress/${topicId}/questions`, {
-        questionIndex,
+        questionIndex: currentQuestion.questionIndex,
         isCorrect,
       });
       if (response.data.user) {
@@ -749,6 +789,14 @@ function TopicDetails() {
 
   const previousQuestion = () => {
     setQuestionIndex((index) => Math.max(index - 1, 0));
+    setAnswer("");
+    setAnswerState("");
+    setShowVisualExplanation(false);
+  };
+
+  const changePracticeLevel = (level) => {
+    setPracticeLevel(level);
+    setQuestionIndex(0);
     setAnswer("");
     setAnswerState("");
     setShowVisualExplanation(false);
@@ -784,12 +832,12 @@ function TopicDetails() {
         </header>
 
         {/* Lesson Selector Switcher */}
-        {lessons.length > 0 && (
-          <div className="mt-8 flex flex-wrap items-center gap-2 border-b border-white/10 pb-5">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mr-2">
+        {currentTopicLessons.length > 0 && (
+          <div className="reveal-on-scroll mt-6 flex flex-wrap items-center gap-2 border-b border-white/10 pb-5 sm:mt-8">
+            <span className="mr-2 w-full text-xs font-bold uppercase tracking-wider text-slate-400 sm:w-auto">
               Select Lesson Practice:
             </span>
-            {lessons.map((l, idx) => {
+            {currentTopicLessons.map((l, idx) => {
               const lessonKey = l._id || l.id;
               const isSelected = activeLessonId === lessonKey || (!activeLessonId && idx === 0);
 
@@ -803,31 +851,26 @@ function TopicDetails() {
                     setAnswer("");
                     setAnswerState("");
                   }}
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold transition ${
+                    className={`motion-button min-w-0 flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition sm:flex-none sm:px-4 sm:text-sm ${
                     isSelected
                       ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 ring-2 ring-indigo-400/40"
                       : "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   <CheckCircle2 size={14} className={isSelected ? "text-white" : "text-slate-500"} />
-                  Lesson {idx + 1}: {l.title}
+                  <span className="truncate">Lesson {idx + 1}: {l.title}</span>
                 </button>
               );
             })}
           </div>
         )}
 
-        <section className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 sm:p-8">
-            <div className="flex items-center gap-3 text-indigo-300"><BookOpen size={20} /><p className="text-sm font-bold uppercase tracking-wider">Lesson Core Idea</p></div>
-            <p className="mt-5 text-2xl font-bold leading-relaxed">{guide.idea}</p>
-            <div className="mt-7 rounded-2xl bg-slate-950/70 p-5"><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Worked example for this lesson</p><p className="mt-3 font-mono text-lg text-emerald-300">{guide.example}</p></div>
-          </div>
-          <MathVisual type={guide.visual} />
+        <section className={`reveal-on-scroll mt-6 sm:mt-8 ${guide.visual === "algebra" ? "hidden" : ""}`}>
+          {guide.visual !== "algebra" && <MathVisual type={guide.visual} />}
         </section>
 
-        <section className="mt-8 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 sm:p-8">
+        <section className="mt-6 grid gap-4 sm:mt-8 sm:gap-6 lg:grid-cols-2">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-8">
             <p className="text-sm font-bold uppercase tracking-wider text-indigo-300">Understand first</p>
             <h2 className="mt-2 text-2xl font-black">Targeted Lesson Strategy</h2>
             <p className="mt-4 leading-7 text-slate-300">This question asks: {currentQuestion.prompt}</p>
@@ -838,13 +881,47 @@ function TopicDetails() {
             <h3 className="mt-7 text-sm font-bold uppercase tracking-wider text-slate-500">Lesson step-by-step path</h3>
             <div className="mt-6 space-y-4">{questionLearningPath.map((stepItem, index) => <div key={stepItem} className="flex items-center gap-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 text-sm font-bold text-indigo-300">{index + 1}</span><span className="text-slate-200">{stepItem}</span></div>)}</div>
           </div>
-          <div className="rounded-3xl border border-amber-300/15 bg-amber-300/5 p-5 sm:p-8">
+          <div className="motion-surface reveal-on-scroll rounded-3xl border border-amber-300/15 bg-amber-300/5 p-4 sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <p className="text-sm font-bold uppercase tracking-wider text-amber-300">Lesson Practice</p>
               <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                 <span className="rounded-full bg-indigo-300/15 px-3 py-1.5 text-indigo-200">Progress: {progressPercentage}%</span>
-                <span className="rounded-full bg-white/10 px-3 py-1.5 text-slate-300">Attempted: {topicAttempts.length}/{questionBank.length}</span>
-                <span className="rounded-full bg-emerald-300/15 px-3 py-1.5 text-emerald-200">Correct: {topicCorrect.length}/{questionBank.length}</span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5 text-slate-300">Attempted: {levelAttempts.length}/{questionBank.length}</span>
+                <span className="rounded-full bg-emerald-300/15 px-3 py-1.5 text-emerald-200">Correct: {levelCorrect.length}/{questionBank.length}</span>
+              </div>
+            </div>
+            <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Choose your practice level</p>
+                  <p className="mt-1 text-xs text-slate-500">Recommended: start with Beginner, then progress to real-world challenges.</p>
+                </div>
+                <span className="rounded-full bg-emerald-300/15 px-3 py-1 text-xs font-bold text-emerald-200">{questionBank.length} questions</span>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {[{
+                  key: "Beginner",
+                  description: "Build the core skill",
+                  classes: "border-emerald-300/30 bg-emerald-300/10 text-emerald-200",
+                }, {
+                  key: "Intermediate",
+                  description: "Apply it in guided problems",
+                  classes: "border-sky-300/30 bg-sky-300/10 text-sky-200",
+                }, {
+                  key: "Hard",
+                  description: "Stretch with real decisions",
+                  classes: "border-rose-300/30 bg-rose-300/10 text-rose-200",
+                }].map((level) => (
+                  <button
+                    key={level.key}
+                    type="button"
+                    onClick={() => changePracticeLevel(level.key)}
+                    className={`motion-button rounded-xl border px-3 py-3 text-left transition ${level.classes} ${practiceLevel === level.key ? "ring-2 ring-white/60" : "opacity-65 hover:opacity-100"}`}
+                  >
+                    <span className="block text-sm font-bold">{level.key}</span>
+                    <span className="mt-1 block text-xs opacity-80">{level.description}</span>
+                  </button>
+                ))}
               </div>
             </div>
             <h2 className="mt-3 text-2xl font-black">{guide.title} Practice Box</h2>
@@ -857,22 +934,18 @@ function TopicDetails() {
             {answerState === "try-again" && <p className="mt-3 text-sm font-semibold text-amber-200">Not quite. Your attempt is saved. Hint: {currentQuestion.hint}</p>}
             {answerState === "already-attempted" && <p className="mt-3 text-sm font-semibold text-sky-200">This question was already counted. Repeating it does not change XP or daily progress.</p>}
             {answerState === "save-error" && <p className="mt-3 text-sm font-semibold text-red-300">Could not save this answer. Please try again.</p>}
-            <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap"><button type="button" disabled={savingProgress} onClick={checkAnswer} className="rounded-xl bg-amber-300 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-200 disabled:cursor-wait disabled:opacity-60">{savingProgress ? "Saving..." : "Check answer"}</button><button type="button" disabled={questionIndex === 0 || savingProgress} onClick={previousQuestion} className="rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40">Previous question</button><button type="button" disabled={savingProgress} onClick={nextQuestion} className="rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40">Next question</button></div>
+            <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap"><button type="button" disabled={savingProgress} onClick={checkAnswer} className="motion-button w-full rounded-xl bg-amber-300 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-200 disabled:cursor-wait disabled:opacity-60 sm:w-auto">{savingProgress ? "Saving..." : "Check answer"}</button><button type="button" disabled={questionIndex === 0 || savingProgress} onClick={previousQuestion} className="motion-button w-full rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">Previous question</button><button type="button" disabled={savingProgress} onClick={nextQuestion} className="motion-button w-full rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">Next question</button></div>
           </div>
         </section>
 
-        <section className="mt-8">
+        <section className="reveal-on-scroll mt-8">
           {/* Section header */}
           <div className="mb-5 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <p className="text-sm font-semibold uppercase tracking-wider text-indigo-400">Watch and learn</p>
               <h2 className="mt-1 text-2xl font-black sm:text-3xl">Lesson Video</h2>
               <p className="mt-1 text-xs text-slate-500">
-                Video changes every 3 questions · Now showing video{" "}
-                <span className="font-bold text-indigo-300">
-                  {Math.floor(questionIndex / 3) % (guide.videoPool?.length || 1) + 1}
-                </span>{" "}
-                of {guide.videoPool?.length || 1}
+                Topic lesson video · {activeLessonObject?.title || guide.title}
               </p>
             </div>
             <button
@@ -887,8 +960,8 @@ function TopicDetails() {
           {/* Video player — swaps on question group change */}
           <AnimatePresence mode="wait">
             <motion.article
-              key={`video-${Math.floor(questionIndex / 3) % (guide.videoPool?.length || 1)}`}
-              className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 max-w-3xl"
+              key={`video-${activeLessonKey}`}
+              className="w-full max-w-3xl overflow-hidden rounded-2xl border border-white/10 bg-white/5"
               initial={{ opacity: 0, y: 20, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -16, scale: 0.97 }}
@@ -907,17 +980,13 @@ function TopicDetails() {
                   </span>
                 </div>
                 <span className="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-bold text-indigo-300 border border-indigo-500/30">
-                  Video {Math.floor(questionIndex / 3) % (guide.videoPool?.length || 1) + 1} / {guide.videoPool?.length || 1}
+                  Topic lesson video
                 </span>
               </div>
 
               <VideoPlayer
-                videoUrl={
-                  guide.videoPool
-                    ? guide.videoPool[Math.floor(questionIndex / 3) % guide.videoPool.length]
-                    : guide.videoUrl
-                }
-                title={`${guide.title} — Video ${Math.floor(questionIndex / 3) % (guide.videoPool?.length || 1) + 1}`}
+                videoUrl={lessonVideoUrl}
+                title={`${activeLessonObject?.title || guide.title} lesson`}
               />
 
               <div className="p-5">
@@ -926,19 +995,6 @@ function TopicDetails() {
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <Clock3 size={14} /> 10-15 min lesson
-                  </div>
-                  {/* Mini video progress dots */}
-                  <div className="flex gap-1.5">
-                    {(guide.videoPool || [guide.videoUrl]).map((_, dotIdx) => (
-                      <span
-                        key={dotIdx}
-                        className={`h-1.5 rounded-full transition-all duration-300 ${
-                          dotIdx === Math.floor(questionIndex / 3) % (guide.videoPool?.length || 1)
-                            ? "w-6 bg-indigo-400"
-                            : "w-1.5 bg-white/20"
-                        }`}
-                      />
-                    ))}
                   </div>
                 </div>
               </div>

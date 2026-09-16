@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { ArrowLeft, CheckCircle2, KeyRound, Mail, ShieldCheck } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/authContext";
 import api from "../services/api";
 
 function ResetPassword() {
+  const { user } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
+  const accountOnly = new URLSearchParams(location.search).get("account") === "1";
   const [step, setStep] = useState("email");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(user?.email || "");
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -22,18 +26,18 @@ function ResetPassword() {
 
     try {
       if (step === "email") {
-        await api.post("/auth/forgot-password", { email });
-        setMessage("If an account exists for this email, a 6-digit code has been sent.");
+        await api.post(accountOnly ? "/auth/account/forgot-password" : "/auth/forgot-password", accountOnly ? {} : { email });
+        setMessage(accountOnly ? `A 6-digit code was sent to ${user.email}.` : "If an account exists for this email, a 6-digit code has been sent.");
         setStep("otp");
       } else if (step === "otp") {
-        await api.post("/auth/verify-reset-otp", { email, otp });
+        await api.post(accountOnly ? "/auth/account/verify-reset-otp" : "/auth/verify-reset-otp", { otp, ...(accountOnly ? {} : { email }) });
         setStep("password");
       } else {
         if (password !== confirmation) {
           setError("Passwords do not match.");
           return;
         }
-        const response = await api.post("/auth/reset-password", { email, otp, password });
+        const response = await api.post(accountOnly ? "/auth/account/reset-password" : "/auth/reset-password", { otp, password, ...(accountOnly ? {} : { email }) });
         setMessage(response.data.message);
         setStep("complete");
       }
@@ -69,7 +73,7 @@ function ResetPassword() {
             {step === "complete" && "Password updated"}
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-400">
-            {step === "email" && "Enter your MathMind email and we will send a secure verification code."}
+            {step === "email" && (accountOnly ? `We will send a secure verification code to your login email, ${user?.email}.` : "Enter your MathMind email and we will send a secure verification code.")}
             {step === "otp" && `Enter the 6-digit code sent to ${email}. It expires in 10 minutes.`}
             {step === "password" && "Your identity is verified. Create a new password with at least 6 characters."}
             {step === "complete" && "Your password has been changed. You can now sign in with the new password."}
@@ -78,10 +82,17 @@ function ResetPassword() {
           {step !== "complete" ? (
             <form onSubmit={submit} className="mt-8 space-y-5">
               {step === "email" && (
-                <label className="block text-sm font-semibold text-slate-300">
-                  Email address
-                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoFocus placeholder="you@example.com" className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20" />
-                </label>
+                accountOnly ? (
+                  <div className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-slate-300">
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500">Login email</span>
+                    <span className="mt-1 block font-bold text-white">{user?.email}</span>
+                  </div>
+                ) : (
+                  <label className="block text-sm font-semibold text-slate-300">
+                    Email address
+                    <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoFocus placeholder="you@example.com" className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20" />
+                  </label>
+                )
               )}
 
               {step === "otp" && (
@@ -111,7 +122,7 @@ function ResetPassword() {
                 {loading ? "Please wait..." : step === "email" ? "Send verification code" : step === "otp" ? "Verify code" : "Reset password"}
               </button>
 
-              {step === "otp" && <button type="button" onClick={() => { setStep("email"); setMessage(""); setError(""); }} className="w-full text-sm font-semibold text-slate-400 transition hover:text-white">Use a different email</button>}
+              {step === "otp" && !accountOnly && <button type="button" onClick={() => { setStep("email"); setMessage(""); setError(""); }} className="w-full text-sm font-semibold text-slate-400 transition hover:text-white">Use a different email</button>}
             </form>
           ) : (
             <button type="button" onClick={() => navigate("/login", { replace: true })} className="motion-button mt-8 w-full rounded-xl bg-indigo-500 py-3.5 font-bold text-white transition hover:bg-indigo-400">Continue to login</button>

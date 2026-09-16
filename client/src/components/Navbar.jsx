@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
-import { LayoutDashboard, BookOpen, LogOut, Menu, X, User } from "lucide-react";
+import { LayoutDashboard, BookOpen, LogOut, Menu, X, User, Target, ShieldCheck } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 function Navbar() {
@@ -112,6 +112,14 @@ function Navbar() {
             {user ? (
               <div className="flex items-center gap-3 border-l border-white/10 pl-3">
                 <Link
+                  to="/study-hub"
+                  className="flex items-center gap-1.5 rounded-xl border border-transparent px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/5 hover:text-white"
+                >
+                  <Target size={16} />
+                  Study Hub
+                </Link>
+
+                <Link
                   to="/lessons"
                   className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
                     isLessonsActive
@@ -134,6 +142,16 @@ function Navbar() {
                   <LayoutDashboard size={16} />
                   Dashboard
                 </Link>
+
+                {user.role === "admin" && (
+                  <Link
+                    to="/admin"
+                    className="flex items-center gap-1.5 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-200 transition-all hover:bg-cyan-300/15"
+                  >
+                    <ShieldCheck size={16} />
+                    Admin
+                  </Link>
+                )}
 
                 <div className="flex items-center gap-3 pl-2">
                   <Link
@@ -271,6 +289,14 @@ function Navbar() {
                   Logged in as {user.firstName} {user.lastName}
                 </p>
                 <Link
+                  to="/study-hub"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+                >
+                  <Target size={16} />
+                  Study Hub
+                </Link>
+                <Link
                   to="/lessons"
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
@@ -294,6 +320,16 @@ function Navbar() {
                   <LayoutDashboard size={16} />
                   Dashboard
                 </Link>
+                {user.role === "admin" && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-cyan-200 transition hover:bg-cyan-300/10"
+                  >
+                    <ShieldCheck size={16} />
+                    Admin workspace
+                  </Link>
+                )}
                 <Link
                   to="/profile"
                   onClick={() => setMobileMenuOpen(false)}

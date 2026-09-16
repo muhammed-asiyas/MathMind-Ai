@@ -90,8 +90,31 @@ const getLessonQuestions = async (req, res) => {
 			return res.status(404).json({ success: false, message: "Lesson not found" });
 		}
 
+		// The lesson owns its pack. The explicit key keeps similarly named subtopics
+		// independent, while the resolver supports older records without a key.
 		const questionSetKey = lesson.questionSetKey || resolveQuestionSetKey(lesson.title, lesson.topic?.title, lesson.order);
-		const questions = getQuestionBankForLesson(questionSetKey);
+		const generatedQuestions = getQuestionBankForLesson(questionSetKey).slice(0, 45);
+		let questions = await Question.find({ lesson: lesson._id }).sort({ questionIndex: 1 });
+
+		const writes = generatedQuestions.map((question) => ({
+			updateOne: {
+				filter: { lesson: lesson._id, questionIndex: question.questionIndex },
+				update: {
+					$set: {
+						topic: lesson.topic._id,
+						lesson: lesson._id,
+						questionIndex: question.questionIndex,
+						difficulty: question.difficulty,
+						prompt: question.prompt,
+						answer: question.answer,
+						hint: question.hint,
+					},
+				},
+				upsert: true,
+			},
+		}));
+		if (writes.length > 0) await Question.bulkWrite(writes);
+		questions = await Question.find({ lesson: lesson._id }).sort({ questionIndex: 1 });
 		return res.status(200).json({
 			success: true,
 			lesson: { id: lesson._id, title: lesson.title, order: lesson.order },

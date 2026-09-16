@@ -270,10 +270,39 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const getAuthenticatedEmail = async (req) => {
+  const user = await User.findById(req.user.userId).select("email");
+  return user?.email || "";
+};
+
+const requestAuthenticatedPasswordReset = async (req, res) => {
+  const email = await getAuthenticatedEmail(req);
+  if (!email) return res.status(404).json({ success: false, message: "User not found." });
+  req.body.email = email;
+  return requestPasswordReset(req, res);
+};
+
+const verifyAuthenticatedPasswordResetOtp = async (req, res) => {
+  const email = await getAuthenticatedEmail(req);
+  if (!email) return res.status(404).json({ success: false, message: "User not found." });
+  req.body.email = email;
+  return verifyPasswordResetOtp(req, res);
+};
+
+const resetAuthenticatedPassword = async (req, res) => {
+  const email = await getAuthenticatedEmail(req);
+  if (!email) return res.status(404).json({ success: false, message: "User not found." });
+  req.body.email = email;
+  return resetPassword(req, res);
+};
+
 module.exports = {
   registerUser,
   loginUser,
   requestPasswordReset,
   verifyPasswordResetOtp,
   resetPassword,
+  requestAuthenticatedPasswordReset,
+  verifyAuthenticatedPasswordResetOtp,
+  resetAuthenticatedPassword,
 };

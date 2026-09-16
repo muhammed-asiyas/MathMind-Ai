@@ -1,4 +1,5 @@
-import { Film, Play, Sparkles, Volume2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Film, Play, Sparkles, Volume2, VolumeX } from "lucide-react";
 
 function getYouTubeEmbedUrl(videoUrl) {
 	try {
@@ -14,6 +15,51 @@ function getYouTubeEmbedUrl(videoUrl) {
 }
 
 function VideoPlayer({ videoUrl, title }) {
+	const playerRef = useRef(null);
+	const [isMuted, setIsMuted] = useState(true);
+
+	const sendYouTubeCommand = (command, args = []) => {
+		playerRef.current?.contentWindow?.postMessage(JSON.stringify({
+			event: "command",
+			func: command,
+			args,
+		}), "*");
+	};
+
+	useEffect(() => {
+		const player = playerRef.current;
+		if (!player) return undefined;
+
+		const observer = new IntersectionObserver(([entry]) => {
+			if (entry.isIntersecting) {
+				if (player.tagName === "VIDEO") {
+					player.play().catch(() => {});
+				} else {
+					sendYouTubeCommand("playVideo");
+				}
+			} else if (player.tagName === "VIDEO") {
+				player.pause();
+			} else {
+				sendYouTubeCommand("pauseVideo");
+			}
+		}, { threshold: 0.5 });
+
+		observer.observe(player);
+		return () => observer.disconnect();
+	}, [isMuted, videoUrl]);
+
+	const toggleSound = () => {
+		if (playerRef.current?.tagName === "VIDEO") {
+			playerRef.current.muted = !isMuted;
+			if (isMuted) playerRef.current.play().catch(() => {});
+		} else {
+			sendYouTubeCommand(isMuted ? "unMute" : "mute");
+			sendYouTubeCommand("setVolume", [100]);
+			sendYouTubeCommand("playVideo");
+		}
+		setIsMuted((current) => !current);
+	};
+
 	if (!videoUrl) {
 		return (
 			<div className="relative isolate flex aspect-video items-center justify-center overflow-hidden bg-slate-950 px-6 text-center">
@@ -32,7 +78,7 @@ function VideoPlayer({ videoUrl, title }) {
 
 	const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
 	const embedUrl = getYouTubeEmbedUrl(videoUrl);
-	const iframeUrl = `${embedUrl}${embedUrl.includes("?") ? "&" : "?"}autoplay=1&mute=1&loop=1&playlist=${embedUrl.split("/").pop()}`;
+	const iframeUrl = `${embedUrl}${embedUrl.includes("?") ? "&" : "?"}enablejsapi=1&autoplay=0&mute=1&controls=1&loop=1&playlist=${embedUrl.split("/").pop()}`;
 
 	return (
 		<div className="group relative isolate aspect-video overflow-hidden bg-slate-950">
@@ -50,23 +96,28 @@ function VideoPlayer({ videoUrl, title }) {
 				<div className="min-w-0">
 					<p className="truncate text-sm font-bold text-white drop-shadow-lg">{title || "Mathematics lesson"}</p>
 					<div className="mt-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-white/60">
-						<Volume2 size={12} /> Sound off for focus
+						{isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />} {isMuted ? "Sound off" : "Sound on"}
 					</div>
 				</div>
-				<div className="flex h-7 items-end gap-1" aria-hidden="true">
+				<button type="button" onClick={toggleSound} className="pointer-events-auto flex items-center gap-2 rounded-lg border border-white/20 bg-slate-950/60 px-3 py-2 text-xs font-bold text-white backdrop-blur transition hover:bg-slate-950/80" aria-label={isMuted ? "Turn lesson sound on" : "Turn lesson sound off"}>
+					{isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+					{isMuted ? "Turn sound on" : "Mute"}
+				</button>
+				<div className="hidden h-7 items-end gap-1 sm:flex" aria-hidden="true">
 					{["h-2", "h-4", "h-6", "h-3", "h-5"].map((height, index) => <span key={height} className={`w-1 rounded-full bg-cyan-300/90 animate-pulse ${height}`} style={{ animationDelay: `${index * 140}ms` }} />)}
 				</div>
 			</div>
 			{isYouTube ? (
 				<iframe
 					className="h-full w-full"
+					ref={playerRef}
 					src={iframeUrl}
 					title={title || "Mathematics lesson video"}
 					allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 					allowFullScreen
 				/>
 			) : (
-				<video className="h-full w-full bg-black object-cover" autoPlay muted loop playsInline controls preload="metadata">
+				<video ref={playerRef} className="h-full w-full bg-black object-cover" muted loop playsInline controls preload="metadata">
 					<source src={videoUrl} />
 					Your browser does not support video playback.
 				</video>

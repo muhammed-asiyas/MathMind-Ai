@@ -1,10 +1,101 @@
 const Topic = require("../models/Topic");
 const Lesson = require("../models/Lesson");
+const Progress = require("../models/Progress");
+
+const topicLessonBlueprints = {
+  Algebra: [
+    ["Algebra Core Concepts", "variables-expressions", "Learn variables, expressions, and the language of algebra.", "Beginner"],
+    ["Algebra Guided Practice", "one-step-equations", "Build confidence solving equations with guided inverse-operation practice.", "Beginner"],
+    ["Algebra Advanced Problems", "two-step-equations", "Apply algebra to multi-step equations and bracket problems.", "Intermediate"],
+  ],
+  Geometry: [
+    ["Geometry Core Concepts", "angles-lines", "Understand angles, lines, and essential geometric relationships.", "Beginner"],
+    ["Geometry Guided Practice", "area-perimeter", "Practice area and perimeter with step-by-step shape problems.", "Intermediate"],
+    ["Geometry Advanced Problems", "circles-pythagoras", "Solve circle and right-triangle problems using key formulae.", "Advanced"],
+  ],
+  Fractions: [
+    ["Fractions Core Concepts", "equivalent-simplification", "Build fraction fluency by simplifying and finding equivalent forms.", "Beginner"],
+    ["Fractions Guided Practice", "adding-subtracting", "Practice adding and subtracting fractions with common denominators.", "Intermediate"],
+    ["Fractions Advanced Problems", "multiplying-dividing", "Apply multiplication, division, and fraction-of-quantity strategies.", "Intermediate"],
+  ],
+  Arithmetic: [
+    ["Arithmetic Core Concepts", "place-value-operations", "Strengthen place value, rounding, and essential number operations.", "Beginner"],
+    ["Arithmetic Guided Practice", "multiplication-division", "Practice multiplication and division through useful real-world calculations.", "Intermediate"],
+    ["Arithmetic Advanced Problems", "factors-multiples-gcf-lcm", "Solve challenging factor, multiple, GCF, and LCM problems.", "Advanced"],
+  ],
+  Statistics: [
+    ["Statistics Data Basics", "statistics-data-basics", "Read tables, charts, and data displays with confidence.", "Beginner"],
+    ["Statistics Averages & Spread", "statistics-averages-spread", "Calculate and interpret mean, median, mode, and range.", "Intermediate"],
+    ["Statistics Probability & Charts", "statistics-probability-charts", "Use probability and data displays to make informed decisions.", "Advanced"],
+  ],
+};
+
+const lessonVideoUrls = {
+  "variables-expressions": "https://www.youtube.com/embed/NybHckSEQBI",
+  "one-step-equations": "https://www.youtube.com/embed/Qyd_v3DGzTM",
+  "two-step-equations": "https://www.youtube.com/embed/9ITsXICV2u0",
+  "angles-lines": "https://www.youtube.com/embed/DGKwdHMiqCg",
+  "area-perimeter": "https://www.youtube.com/embed/xCdxURXMdFY",
+  "circles-pythagoras": "https://www.youtube.com/embed/AA6RfgP-AHU",
+  "equivalent-simplification": "https://www.youtube.com/embed/n0FZhQ_GkKw",
+  "adding-subtracting": "https://www.youtube.com/embed/5juto2ze8Lg",
+  "multiplying-dividing": "https://www.youtube.com/embed/qmfXyR7Z6Lk",
+  "place-value-operations": "https://www.youtube.com/embed/T5Qf0qSSJFI",
+  "multiplication-division": "https://www.youtube.com/embed/sR83TDp_g2c",
+  "factors-multiples-gcf-lcm": "https://www.youtube.com/embed/jFd-6EPfnec",
+  "statistics-data-basics": "https://www.youtube.com/embed/qBigTkBLU6g",
+  "statistics-averages-spread": "https://www.youtube.com/embed/qBigTkBLU6g",
+  "statistics-probability-charts": "https://www.youtube.com/embed/KzfWUEJjG18",
+};
+
+const ensureTopicLessons = async (topics) => {
+  for (const topic of topics) {
+    const blueprints = topicLessonBlueprints[topic.title];
+    if (!blueprints) continue;
+
+    for (const [index, [title, questionSetKey, description, difficulty]] of blueprints.entries()) {
+      await Lesson.updateOne(
+        { topic: topic._id, order: index + 1 },
+        {
+          $set: {
+            title,
+            questionSetKey,
+            videoUrl: lessonVideoUrls[questionSetKey],
+            description,
+            content: description,
+            difficulty,
+            duration: 10 + index * 3,
+          },
+          $setOnInsert: { topic: topic._id, order: index + 1 },
+        },
+        { upsert: true }
+      );
+    }
+  }
+};
 
 const seedInitialData = async () => {
   try {
     const existingTopicsCount = await Topic.countDocuments();
-    if (existingTopicsCount > 0) return;
+    if (existingTopicsCount > 0) {
+      const existingTopics = await Topic.find({ title: { $in: Object.keys(topicLessonBlueprints) } });
+      const statisticsTopic = await Topic.findOneAndUpdate(
+        { title: "Statistics" },
+        {
+          $setOnInsert: {
+            title: "Statistics",
+            description: "Understand data, averages, spread, probability, and charts used in real decisions.",
+            icon: "📊",
+            difficulty: "Intermediate",
+            order: 5,
+          },
+        },
+        { upsert: true, new: true }
+      );
+      existingTopics.push(statisticsTopic);
+      await ensureTopicLessons(existingTopics);
+      return;
+    }
 
     const topicsData = [
       {
@@ -34,6 +125,13 @@ const seedInitialData = async () => {
         icon: "🔢",
         difficulty: "Beginner",
         order: 4,
+      },
+      {
+        title: "Statistics",
+        description: "Understand data, averages, spread, probability, and charts used in real decisions.",
+        icon: "📊",
+        difficulty: "Intermediate",
+        order: 5,
       },
     ];
 
@@ -176,9 +274,43 @@ const seedInitialData = async () => {
         order: 3,
         duration: 16,
       },
+      {
+        topic: topicMap["Statistics"],
+        title: "Statistics Data Basics",
+        questionSetKey: "statistics-data-basics",
+        description: "Read tables, charts, and data displays with confidence.",
+        content: "Organize data, compare values, and identify what a chart is showing.",
+        videoUrl: lessonVideoUrls["statistics-data-basics"],
+        difficulty: "Beginner",
+        order: 1,
+        duration: 10,
+      },
+      {
+        topic: topicMap["Statistics"],
+        title: "Statistics Averages & Spread",
+        questionSetKey: "statistics-averages-spread",
+        description: "Calculate and interpret mean, median, mode, and range.",
+        content: "Use averages and spread to summarize and compare real data sets.",
+        videoUrl: lessonVideoUrls["statistics-averages-spread"],
+        difficulty: "Intermediate",
+        order: 2,
+        duration: 14,
+      },
+      {
+        topic: topicMap["Statistics"],
+        title: "Statistics Probability & Charts",
+        questionSetKey: "statistics-probability-charts",
+        description: "Use probability and data displays to make informed decisions.",
+        content: "Interpret probability, sampling, and misleading or useful charts.",
+        videoUrl: lessonVideoUrls["statistics-probability-charts"],
+        difficulty: "Advanced",
+        order: 3,
+        duration: 18,
+      },
     ];
 
     await Lesson.insertMany(lessonsData);
+    await ensureTopicLessons(createdTopics);
   } catch (err) {
     console.error("SEED DATA ERROR:", err);
   }
@@ -238,8 +370,31 @@ const createTopic = async (req, res) => {
   }
 };
 
+const deleteTopic = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const topic = await Topic.findById(id);
+    if (!topic) {
+      return res.status(404).json({ success: false, message: "Topic not found." });
+    }
+
+    // Cascade: delete all lessons belonging to this topic
+    await Lesson.deleteMany({ topic: id });
+    // Cascade: delete all student progress tied to this topic
+    await Progress.deleteMany({ topic: id });
+    await Topic.findByIdAndDelete(id);
+
+    return res.status(200).json({ success: true, message: "Topic and its lessons removed successfully." });
+  } catch (error) {
+    console.error("DELETE TOPIC ERROR:", error);
+    return res.status(500).json({ success: false, message: "Failed to delete topic." });
+  }
+};
+
 module.exports = {
   getTopics,
   createTopic,
+  deleteTopic,
   seedInitialData,
 };

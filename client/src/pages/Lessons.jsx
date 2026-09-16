@@ -375,7 +375,7 @@ function Lessons() {
                         </div>
 
                         {/* Lesson Card */}
-                        <div className="group flex-1 rounded-3xl border border-white/10 bg-slate-900/90 p-5 sm:p-6 shadow-xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-indigo-500/40 hover:bg-slate-900">
+                        <div className="motion-surface reveal-on-scroll group flex-1 rounded-3xl border border-white/10 bg-slate-900/90 p-5 sm:p-6 shadow-xl backdrop-blur transition duration-300 hover:border-indigo-500/40 hover:bg-slate-900">
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-2">
                               <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/15 px-3 py-1 text-xs font-bold text-indigo-300 border border-indigo-500/20">
@@ -407,7 +407,7 @@ function Lessons() {
 
                             <Link
                               to={`/topics/${stage.id}?lessonId=${lesson._id || lesson.id}`}
-                              className="flex items-center gap-1 text-sm font-bold text-indigo-400 group-hover:translate-x-1 transition-transform"
+                              className="motion-button flex items-center gap-1 text-sm font-bold text-indigo-400 group-hover:translate-x-1 transition-transform"
                             >
                               Start Lesson <ChevronRight size={16} />
                             </Link>
@@ -455,7 +455,7 @@ function Lessons() {
                 <Link
                   key={lesson._id || lesson.id || `${stage.id}-${idx}`}
                   to={`/topics/${stage.id}?lessonId=${lesson._id || lesson.id}`}
-                  className="group flex flex-col justify-between rounded-3xl border border-white/10 bg-slate-900/90 p-6 shadow-xl transition duration-300 hover:-translate-y-1 hover:border-indigo-500/50 hover:bg-slate-900"
+                  className="motion-surface reveal-on-scroll group flex flex-col justify-between rounded-3xl border border-white/10 bg-slate-900/90 p-6 shadow-xl transition duration-300 hover:border-indigo-500/50 hover:bg-slate-900"
                 >
                   <div>
                     <div className="flex items-center justify-between">

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
   Award,
   BarChart3,
   Check,
   Flame,
+  KeyRound,
   LockKeyhole,
   Mail,
   Save,
@@ -177,6 +179,26 @@ function Profile() {
                 <div className="flex items-center justify-between rounded-2xl bg-slate-950/50 p-4"><span className="flex items-center gap-3 text-sm text-slate-400"><Award size={18} className="text-amber-300" /> Total XP</span><strong className="text-white">{user?.xp || 0}</strong></div>
                 <div className="flex items-center justify-between rounded-2xl bg-slate-950/50 p-4"><span className="flex items-center gap-3 text-sm text-slate-400"><Flame size={18} className="text-orange-300" /> Current streak</span><strong className="text-white">{user?.streak || 0} days</strong></div>
                 <div className="flex items-center justify-between rounded-2xl bg-slate-950/50 p-4"><span className="flex items-center gap-3 text-sm text-slate-400"><Target size={18} className="text-indigo-300" /> Daily target</span><strong className="text-white">{form.dailyGoal} questions</strong></div>
+              </div>
+            </div>
+
+            <div className="motion-surface reveal-on-scroll rounded-3xl border border-indigo-400/20 bg-indigo-400/[0.06] p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-400/15 text-indigo-300">
+                  <KeyRound size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black">Keep your account secure</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    Reset your password using a verification code sent to your email.
+                  </p>
+                  <Link
+                    to="/forgot-password?account=1"
+                    className="motion-button mt-5 inline-flex items-center gap-2 rounded-xl border border-indigo-300/30 bg-indigo-400/10 px-4 py-2.5 text-sm font-bold text-indigo-200 transition hover:bg-indigo-400/20"
+                  >
+                    <KeyRound size={16} /> Reset password
+                  </Link>
+                </div>
               </div>
             </div>
 
