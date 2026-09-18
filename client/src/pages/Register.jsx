@@ -42,7 +42,7 @@ function Register() {
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
-          "Registration failed"
+        "Registration failed"
       );
     } finally {
       setLoading(false);
@@ -126,7 +126,7 @@ function Register() {
                     name="firstName"
                     value={formData.firstName}
                     onChange={handleChange}
-                    placeholder="Asiya"
+                    placeholder="first name"
                     required
                     className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none transition placeholder:text-slate-600 focus:border-indigo-500"
                   />
@@ -142,7 +142,7 @@ function Register() {
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleChange}
-                    placeholder="Muhammed"
+                    placeholder="last name"
                     required
                     className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none transition placeholder:text-slate-600 focus:border-indigo-500"
                   />

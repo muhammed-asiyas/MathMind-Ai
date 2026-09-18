@@ -6,6 +6,7 @@ import api from "../../services/api";
 import VideoPlayer from "../../components/VideoPlayer";
 import { useAuth } from "../../context/authContext";
 
+
 const lessonGuides = {
   // Algebra Lessons
   "variables-expressions": {
@@ -865,9 +866,7 @@ function TopicDetails() {
           </div>
         )}
 
-        <section className={`reveal-on-scroll mt-6 sm:mt-8 ${guide.visual === "algebra" ? "hidden" : ""}`}>
-          {guide.visual !== "algebra" && <MathVisual type={guide.visual} />}
-        </section>
+
 
         <section className="mt-6 grid gap-4 sm:mt-8 sm:gap-6 lg:grid-cols-2">
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-8">
@@ -957,7 +956,7 @@ function TopicDetails() {
             </button>
           </div>
 
-          {/* Video player — swaps on question group change */}
+          {/* Video player — swaps on lesson change */}
           <AnimatePresence mode="wait">
             <motion.article
               key={`video-${activeLessonKey}`}
@@ -967,7 +966,7 @@ function TopicDetails() {
               exit={{ opacity: 0, y: -16, scale: 0.97 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
-              {/* Video number pill */}
+              {/* Video header pill */}
               <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
                 <div className="flex items-center gap-2">
                   <motion.span
