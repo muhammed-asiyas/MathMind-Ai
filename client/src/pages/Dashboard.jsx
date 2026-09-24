@@ -5,6 +5,7 @@ import { Flame, LogOut, X, Trophy, Medal, Users, TrendingUp } from "lucide-react
 import api from "../services/api";
 import { useAuth } from "../context/authContext";
 import Navbar from "../components/Navbar";
+import Hero3DWrapper from "../components/Hero3DWrapper";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -90,7 +91,7 @@ function Dashboard() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
 
         {/* Welcome */}
-        <section>
+        <Hero3DWrapper>
           <p className="text-sm font-medium text-indigo-400">
             YOUR LEARNING SPACE
           </p>
@@ -102,66 +103,72 @@ function Dashboard() {
           <p className="mt-3 text-slate-400">
             Keep learning and become better at mathematics every day.
           </p>
-        </section>
+        </Hero3DWrapper>
 
         {/* Stats */}
-        <section className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4" style={{ perspective: "1000px" }}>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
-            <div className="text-3xl">⭐</div>
+          <motion.div whileHover={{ scale: 1.05, rotateY: 5, rotateX: -5 }} transition={{ type: "spring", stiffness: 300 }} className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6" style={{ transformStyle: "preserve-3d" }}>
+            <div className="text-3xl" style={{ transform: "translateZ(30px)" }}>⭐</div>
 
-            <p className="mt-4 text-sm text-slate-400">
+            <p className="mt-4 text-sm text-slate-400" style={{ transform: "translateZ(20px)" }}>
               Total XP
             </p>
 
-            <p className="mt-1 text-3xl font-black">
+            <p className="mt-1 text-3xl font-black" style={{ transform: "translateZ(10px)" }}>
               {user?.xp || 0}
             </p>
-          </div>
+          </motion.div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
-            <div className="text-3xl">🏆</div>
+          <motion.div whileHover={{ scale: 1.05, rotateY: -5, rotateX: -5 }} transition={{ type: "spring", stiffness: 300 }} className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6" style={{ transformStyle: "preserve-3d" }}>
+            <div className="text-3xl" style={{ transform: "translateZ(30px)" }}>🏆</div>
 
-            <p className="mt-4 text-sm text-slate-400">
+            <p className="mt-4 text-sm text-slate-400" style={{ transform: "translateZ(20px)" }}>
               Current Level
             </p>
 
-            <p className="mt-1 text-3xl font-black">
+            <p className="mt-1 text-3xl font-black" style={{ transform: "translateZ(10px)" }}>
               {learningProfile?.level || user?.level || 1}
             </p>
-            <p className="mt-1 text-xs font-semibold text-indigo-300">{learningProfile?.title || "Foundation"}</p>
-          </div>
+            <p className="mt-1 text-xs font-semibold text-indigo-300" style={{ transform: "translateZ(10px)" }}>{learningProfile?.title || "Foundation"}</p>
+          </motion.div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
-            <div className="text-3xl">🔥</div>
+          <motion.div whileHover={{ scale: 1.05, rotateY: 5, rotateX: -5 }} transition={{ type: "spring", stiffness: 300 }} className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6" style={{ transformStyle: "preserve-3d" }}>
+            <div className="text-3xl" style={{ transform: "translateZ(30px)" }}>🔥</div>
 
-            <p className="mt-4 text-sm text-slate-400">
+            <p className="mt-4 text-sm text-slate-400" style={{ transform: "translateZ(20px)" }}>
               Learning Streak
             </p>
 
-            <p className="mt-1 text-3xl font-black">
+            <p className="mt-1 text-3xl font-black" style={{ transform: "translateZ(10px)" }}>
               {user?.streak || 0}
               <span className="ml-1 text-base font-normal text-slate-400">
                 days
               </span>
             </p>
-          </div>
+          </motion.div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
-            <div className="text-3xl">🎯</div>
+          <motion.div whileHover={{ scale: 1.05, rotateY: -5, rotateX: -5 }} transition={{ type: "spring", stiffness: 300 }} className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6" style={{ transformStyle: "preserve-3d" }}>
+            <div className="text-3xl" style={{ transform: "translateZ(30px)" }}>🎯</div>
 
-            <p className="mt-4 text-sm text-slate-400">
+            <p className="mt-4 text-sm text-slate-400" style={{ transform: "translateZ(20px)" }}>
               Daily Goal
             </p>
 
-            <p className="mt-1 text-3xl font-black">
+            <p className="mt-1 text-3xl font-black" style={{ transform: "translateZ(10px)" }}>
                 {Math.min(dailyProgress.attempts, dailyProgress.limit)}/{dailyProgress.limit}
             </p>
-          </div>
+          </motion.div>
 
         </section>
 
-        <section className="motion-surface reveal-on-scroll mt-10 rounded-3xl border border-amber-300/15 bg-gradient-to-br from-amber-300/[0.08] via-white/[0.04] to-indigo-400/[0.06] p-6 sm:p-8">
+        <motion.section 
+          initial={{ opacity: 0, y: 50, rotateX: -15 }}
+          whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="mt-10 rounded-3xl border border-amber-300/15 bg-gradient-to-br from-amber-300/[0.08] via-white/[0.04] to-indigo-400/[0.06] p-6 sm:p-8"
+        >
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-amber-300"><Trophy size={15} /> Learning leaderboard</p>
@@ -219,7 +226,7 @@ function Dashboard() {
               <p className="mt-1 text-sm text-slate-500">Complete a practice question to start earning XP.</p>
             </div>
           )}
-        </section>
+        </motion.section>
 
         <section className="mt-10 grid gap-6 lg:grid-cols-[1fr_1fr]">
           <div className="rounded-3xl border border-cyan-300/15 bg-cyan-300/[0.06] p-6 sm:p-8">
@@ -352,40 +359,44 @@ function Dashboard() {
 
           {/* Topics */}
           {!topicsLoading && topics.length > 0 && (
-            <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-4" style={{ perspective: "1000px" }}>
 
-              {topics.map((topic) => (
-                <Link
-                  to={`/topics/${topic._id}`}
+              {topics.map((topic, index) => (
+                <motion.div
                   key={topic._id}
-                  className="group rounded-2xl border border-white/10 bg-white/5 p-5 text-left transition duration-300 hover:-translate-y-1 hover:border-indigo-500/50 hover:bg-white/10 sm:p-6"
+                  initial={{ opacity: 0, y: 30, rotateX: -20 }}
+                  whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                  whileHover={{ scale: 1.05, rotateY: index % 2 === 0 ? 5 : -5, rotateX: -5, zIndex: 10 }}
                 >
+                  <Link
+                    to={`/topics/${topic._id}`}
+                    className="block h-full group rounded-2xl border border-white/10 bg-white/5 p-5 text-left transition duration-300 hover:border-indigo-500/50 hover:bg-white/10 sm:p-6"
+                    style={{ transformStyle: "preserve-3d" }}
+                  >
+                    <motion.div className="text-4xl" style={{ transform: "translateZ(30px)" }}>
+                      {topic.icon}
+                    </motion.div>
 
-                  <span className="text-4xl">
-                    {topic.icon}
-                  </span>
+                    <motion.h3 className="mt-5 text-xl font-bold transition group-hover:text-indigo-400" style={{ transform: "translateZ(20px)" }}>
+                      {topic.title}
+                    </motion.h3>
 
-                  <h3 className="mt-5 text-xl font-bold transition group-hover:text-indigo-400">
-                    {topic.title}
-                  </h3>
+                    <motion.p className="mt-2 text-sm text-slate-400" style={{ transform: "translateZ(10px)" }}>
+                      {topic.description}
+                    </motion.p>
 
-                  <p className="mt-2 text-sm text-slate-400">
-                    {topic.description}
-                  </p>
-
-                  <div className="mt-4 flex items-center justify-between">
-
-                    <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300">
-                      {topic.difficulty}
-                    </span>
-
-                    <span className="text-sm font-semibold text-indigo-400">
-                      Start →
-                    </span>
-
-                  </div>
-
-                </Link>
+                    <div className="mt-4 flex items-center justify-between" style={{ transform: "translateZ(15px)" }}>
+                      <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300">
+                        {topic.difficulty}
+                      </span>
+                      <span className="text-sm font-semibold text-indigo-400">
+                        Start →
+                      </span>
+                    </div>
+                  </Link>
+                </motion.div>
               ))}
 
             </div>

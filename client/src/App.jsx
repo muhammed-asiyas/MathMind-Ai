@@ -11,6 +11,7 @@ import Profile from "./pages/Profile";
 import AITutor from "./pages/student/AITutor";
 import StudyHub from "./pages/StudyHub";
 import Admin from "./pages/Admin";
+import Chat from "./pages/Chat";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
@@ -120,6 +121,15 @@ function App() {
             <AdminRoute>
               <Admin />
             </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <Chat />
+            </ProtectedRoute>
           }
         />
         </Routes>

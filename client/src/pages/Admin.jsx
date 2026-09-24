@@ -16,6 +16,7 @@ import {
   FilePlus,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
+import Hero3DWrapper from "../components/Hero3DWrapper";
 import api from "../services/api";
 
 const emptyTopic = { title: "", description: "", icon: "📚", difficulty: "Beginner", order: "" };
@@ -255,11 +256,7 @@ function Admin() {
       <main className="mx-auto max-w-7xl px-4 pb-16 pt-24 sm:px-6 lg:px-8">
 
         {/* Header */}
-        <motion.header
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-5 border-b border-white/10 pb-8 sm:flex-row sm:items-end sm:justify-between"
-        >
+        <Hero3DWrapper className="flex flex-col gap-5 border-b border-white/10 pb-8 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
               <ShieldCheck size={15} /> Admin workspace
@@ -272,7 +269,7 @@ function Admin() {
           <span className="w-fit rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-bold text-emerald-200">
             Admin access verified
           </span>
-        </motion.header>
+        </Hero3DWrapper>
 
         {/* Top-level Section Nav */}
         <div className="mt-6 flex gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1 w-fit">
@@ -310,13 +307,19 @@ function Admin() {
           {/* ══════════════ OVERVIEW ══════════════ */}
           {activeSection === "overview" && (
             <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" style={{ perspective: "1000px" }}>
                 {metrics.map(([label, value, Icon, color]) => (
-                  <div key={label} className="motion-surface rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-                    <Icon className={color} size={20} />
-                    <p className="mt-5 text-xs font-bold uppercase tracking-wider text-slate-500">{label}</p>
-                    <p className="mt-1 text-3xl font-black">{loading ? "..." : value}</p>
-                  </div>
+                  <motion.div 
+                    key={label} 
+                    whileHover={{ scale: 1.05, rotateY: 5, rotateX: -5 }} 
+                    transition={{ type: "spring", stiffness: 300 }} 
+                    className="motion-surface rounded-2xl border border-white/10 bg-white/[0.04] p-5"
+                    style={{ transformStyle: "preserve-3d" }}
+                  >
+                    <Icon className={color} size={20} style={{ transform: "translateZ(30px)" }} />
+                    <p className="mt-5 text-xs font-bold uppercase tracking-wider text-slate-500" style={{ transform: "translateZ(20px)" }}>{label}</p>
+                    <p className="mt-1 text-3xl font-black" style={{ transform: "translateZ(10px)" }}>{loading ? "..." : value}</p>
+                  </motion.div>
                 ))}
               </section>
 

@@ -5,7 +5,20 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
-const getToday = () => new Date().toISOString().slice(0, 10);
+const getToday = (timeZone = "UTC") => {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+};
 
 const getPreviousDate = (dateString) => {
   const date = new Date(`${dateString}T00:00:00.000Z`);
@@ -89,7 +102,7 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, timeZone } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -119,12 +132,13 @@ const loginUser = async (req, res) => {
       });
     }
 
-    const today = getToday();
+    const today = getToday(timeZone);
     if (user.lastLoginDate !== today) {
+      const currentStreak = Number.isFinite(user.streak) ? user.streak : 0;
       user.streak = !user.lastLoginDate
         ? 1
         : user.lastLoginDate === getPreviousDate(today)
-          ? user.streak + 1
+          ? currentStreak + 1
           : 1;
 
       await Progress.updateMany(

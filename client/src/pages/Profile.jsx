@@ -13,6 +13,9 @@ import {
   Sparkles,
   Target,
   UserRound,
+  ShieldCheck,
+  Users,
+  BookOpen,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/authContext";
@@ -129,31 +132,33 @@ function Profile() {
               <span className="mt-2 block text-xs font-normal text-slate-500">Your login email is protected and cannot be changed here.</span>
             </label>
 
-            <div className="mt-9 border-t border-white/10 pt-7">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-300">Learning preferences</p>
-              <h3 className="mt-2 text-xl font-black">Choose your focus</h3>
-              <p className="mt-1 text-sm text-slate-400">We will use this to make your learning path feel more relevant.</p>
+            {user?.role !== "admin" && (
+              <div className="mt-9 border-t border-white/10 pt-7">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-300">Learning preferences</p>
+                <h3 className="mt-2 text-xl font-black">Choose your focus</h3>
+                <p className="mt-1 text-sm text-slate-400">We will use this to make your learning path feel more relevant.</p>
 
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {topics.map((topic) => (
-                  <button key={topic} type="button" onClick={() => { setForm((current) => ({ ...current, preferredTopic: topic })); setSaved(false); }} className={`motion-button rounded-xl border px-3 py-3 text-sm font-bold transition ${form.preferredTopic === topic ? "border-indigo-400 bg-indigo-500/15 text-indigo-200 shadow-lg shadow-indigo-950/20" : "border-white/10 bg-slate-950/30 text-slate-400 hover:border-white/25 hover:text-white"}`}>
-                    {topic}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-7">
-                <p className="text-sm font-semibold text-slate-300">Daily practice goal</p>
-                <div className="mt-3 grid grid-cols-4 gap-3">
-                  {goals.map((goal) => (
-                    <button key={goal} type="button" onClick={() => { setForm((current) => ({ ...current, dailyGoal: goal })); setSaved(false); }} className={`motion-button rounded-xl border px-2 py-3 text-center transition ${Number(form.dailyGoal) === goal ? "border-cyan-300 bg-cyan-400/10 text-cyan-200" : "border-white/10 bg-slate-950/30 text-slate-400 hover:border-white/25 hover:text-white"}`}>
-                      <span className="block text-lg font-black">{goal}</span>
-                      <span className="text-[10px] uppercase tracking-wider">questions</span>
+                <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {topics.map((topic) => (
+                    <button key={topic} type="button" onClick={() => { setForm((current) => ({ ...current, preferredTopic: topic })); setSaved(false); }} className={`motion-button rounded-xl border px-3 py-3 text-sm font-bold transition ${form.preferredTopic === topic ? "border-indigo-400 bg-indigo-500/15 text-indigo-200 shadow-lg shadow-indigo-950/20" : "border-white/10 bg-slate-950/30 text-slate-400 hover:border-white/25 hover:text-white"}`}>
+                      {topic}
                     </button>
                   ))}
                 </div>
+
+                <div className="mt-7">
+                  <p className="text-sm font-semibold text-slate-300">Daily practice goal</p>
+                  <div className="mt-3 grid grid-cols-4 gap-3">
+                    {goals.map((goal) => (
+                      <button key={goal} type="button" onClick={() => { setForm((current) => ({ ...current, dailyGoal: goal })); setSaved(false); }} className={`motion-button rounded-xl border px-2 py-3 text-center transition ${Number(form.dailyGoal) === goal ? "border-cyan-300 bg-cyan-400/10 text-cyan-200" : "border-white/10 bg-slate-950/30 text-slate-400 hover:border-white/25 hover:text-white"}`}>
+                        <span className="block text-lg font-black">{goal}</span>
+                        <span className="text-[10px] uppercase tracking-wider">questions</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm">
@@ -167,20 +172,36 @@ function Profile() {
           </form>
 
           <aside className="space-y-6">
-            <div className="motion-surface reveal-on-scroll rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">Your momentum</p>
-                  <h2 className="mt-2 text-xl font-black">Keep the rhythm</h2>
+            {user?.role === "admin" ? (
+              <div className="motion-surface reveal-on-scroll rounded-3xl border border-cyan-400/20 bg-cyan-400/[0.06] p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">System Role</p>
+                    <h2 className="mt-2 text-xl font-black">Administrator</h2>
+                  </div>
+                  <ShieldCheck className="text-cyan-300" size={22} />
                 </div>
-                <BarChart3 className="text-cyan-300" size={22} />
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-950/50 p-4"><span className="flex items-center gap-3 text-sm text-slate-400"><Users size={18} className="text-emerald-300" /> User Management</span><strong className="text-white">Full Access</strong></div>
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-950/50 p-4"><span className="flex items-center gap-3 text-sm text-slate-400"><BookOpen size={18} className="text-indigo-300" /> Content Catalog</span><strong className="text-white">Full Access</strong></div>
+                </div>
               </div>
-              <div className="mt-6 space-y-4">
-                <div className="flex items-center justify-between rounded-2xl bg-slate-950/50 p-4"><span className="flex items-center gap-3 text-sm text-slate-400"><Award size={18} className="text-amber-300" /> Total XP</span><strong className="text-white">{user?.xp || 0}</strong></div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-950/50 p-4"><span className="flex items-center gap-3 text-sm text-slate-400"><Flame size={18} className="text-orange-300" /> Current streak</span><strong className="text-white">{user?.streak || 0} days</strong></div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-950/50 p-4"><span className="flex items-center gap-3 text-sm text-slate-400"><Target size={18} className="text-indigo-300" /> Daily target</span><strong className="text-white">{form.dailyGoal} questions</strong></div>
+            ) : (
+              <div className="motion-surface reveal-on-scroll rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">Your momentum</p>
+                    <h2 className="mt-2 text-xl font-black">Keep the rhythm</h2>
+                  </div>
+                  <BarChart3 className="text-cyan-300" size={22} />
+                </div>
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-950/50 p-4"><span className="flex items-center gap-3 text-sm text-slate-400"><Award size={18} className="text-amber-300" /> Total XP</span><strong className="text-white">{user?.xp || 0}</strong></div>
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-950/50 p-4"><span className="flex items-center gap-3 text-sm text-slate-400"><Flame size={18} className="text-orange-300" /> Current streak</span><strong className="text-white">{user?.streak || 0} days</strong></div>
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-950/50 p-4"><span className="flex items-center gap-3 text-sm text-slate-400"><Target size={18} className="text-indigo-300" /> Daily target</span><strong className="text-white">{form.dailyGoal} questions</strong></div>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="motion-surface reveal-on-scroll rounded-3xl border border-indigo-400/20 bg-indigo-400/[0.06] p-6">
               <div className="flex items-start gap-4">
@@ -202,11 +223,19 @@ function Profile() {
               </div>
             </div>
 
-            <div className="motion-surface reveal-on-scroll rounded-3xl border border-emerald-400/20 bg-emerald-400/[0.06] p-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-300"><Check size={20} /></div>
-              <h2 className="mt-5 text-lg font-black">Your progress is safe</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-400">Your XP, streak, and completed lessons stay connected to this account wherever you learn.</p>
-            </div>
+            {user?.role === "admin" ? (
+              <div className="motion-surface reveal-on-scroll rounded-3xl border border-rose-400/20 bg-rose-400/[0.06] p-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-400/15 text-rose-300"><ShieldCheck size={20} /></div>
+                <h2 className="mt-5 text-lg font-black">Administrative Notice</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-400">You have elevated privileges. Any changes to the learning content or users will reflect globally across the platform.</p>
+              </div>
+            ) : (
+              <div className="motion-surface reveal-on-scroll rounded-3xl border border-emerald-400/20 bg-emerald-400/[0.06] p-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-300"><Check size={20} /></div>
+                <h2 className="mt-5 text-lg font-black">Your progress is safe</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-400">Your XP, streak, and completed lessons stay connected to this account wherever you learn.</p>
+              </div>
+            )}
           </aside>
         </div>
       </main>

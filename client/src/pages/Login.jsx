@@ -31,14 +31,21 @@ function Login() {
     try {
       const response = await api.post(
         "/auth/login",
-        formData
+        {
+          ...formData,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }
       );
 
       const { token, user } = response.data;
 
       login(token, user);
 
-      navigate("/", { replace: true, state: { showLoginStreak: true } });
+      if (user.role === "admin") {
+        navigate("/admin", { replace: true });
+      } else {
+        navigate("/", { replace: true, state: { showLoginStreak: true } });
+      }
     } catch (error) {
       setMessage(
         error.response?.data?.message ||

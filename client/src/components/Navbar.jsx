@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
-import { LayoutDashboard, BookOpen, LogOut, Menu, X, User, Target, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, BookOpen, LogOut, Menu, X, User, Target, ShieldCheck, MessageCircle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 function Navbar() {
@@ -52,6 +52,7 @@ function Navbar() {
   const isLessonsActive = pathname === "/lessons" || pathname.startsWith("/topics");
   const isDashboardActive = pathname === "/dashboard";
   const isProfileActive = pathname === "/profile";
+  const isChatActive = pathname === "/chat";
   const isLoginActive = pathname === "/login";
   const isSignupActive = pathname === "/signup";
 
@@ -111,37 +112,41 @@ function Navbar() {
 
             {user ? (
               <div className="flex items-center gap-3 border-l border-white/10 pl-3">
-                <Link
-                  to="/study-hub"
-                  className="flex items-center gap-1.5 rounded-xl border border-transparent px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/5 hover:text-white"
-                >
-                  <Target size={16} />
-                  Study Hub
-                </Link>
+                {user.role !== "admin" && (
+                  <>
+                    <Link
+                      to="/study-hub"
+                      className="flex items-center gap-1.5 rounded-xl border border-transparent px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/5 hover:text-white"
+                    >
+                      <Target size={16} />
+                      Study Hub
+                    </Link>
 
-                <Link
-                  to="/lessons"
-                  className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-                    isLessonsActive
-                      ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold shadow-sm shadow-indigo-500/10"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
-                  }`}
-                >
-                  <BookOpen size={16} />
-                  Lessons
-                </Link>
+                    <Link
+                      to="/lessons"
+                      className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                        isLessonsActive
+                          ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold shadow-sm shadow-indigo-500/10"
+                          : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
+                      }`}
+                    >
+                      <BookOpen size={16} />
+                      Lessons
+                    </Link>
 
-                <Link
-                  to="/dashboard"
-                  className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-                    isDashboardActive
-                      ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold shadow-sm shadow-indigo-500/10"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
-                  }`}
-                >
-                  <LayoutDashboard size={16} />
-                  Dashboard
-                </Link>
+                    <Link
+                      to="/dashboard"
+                      className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                        isDashboardActive
+                          ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold shadow-sm shadow-indigo-500/10"
+                          : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
+                      }`}
+                    >
+                      <LayoutDashboard size={16} />
+                      Dashboard
+                    </Link>
+                  </>
+                )}
 
                 {user.role === "admin" && (
                   <Link
@@ -152,6 +157,18 @@ function Navbar() {
                     Admin
                   </Link>
                 )}
+
+                <Link
+                  to="/chat"
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
+                    isChatActive
+                      ? "bg-cyan-300/15 text-cyan-200 border border-cyan-300/30 font-semibold"
+                      : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
+                  }`}
+                >
+                  <MessageCircle size={16} />
+                  Chat
+                </Link>
 
                 <div className="flex items-center gap-3 pl-2">
                   <Link
@@ -206,7 +223,7 @@ function Navbar() {
 
           {/* Mobile menu toggle */}
           <div className="flex items-center gap-3 md:hidden">
-            {user && (
+            {user && user.role !== "admin" && (
               <Link
                 to="/dashboard"
                 className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
@@ -289,37 +306,53 @@ function Navbar() {
                   Logged in as {user.firstName} {user.lastName}
                 </p>
                 <Link
-                  to="/study-hub"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
-                >
-                  <Target size={16} />
-                  Study Hub
-                </Link>
-                <Link
-                  to="/lessons"
+                  to="/chat"
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                    isLessonsActive
-                      ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
+                    isChatActive
+                      ? "bg-cyan-300/15 text-cyan-200 border border-cyan-300/30 font-semibold"
                       : "text-slate-300 hover:bg-white/5 hover:text-white"
                   }`}
                 >
-                  <BookOpen size={16} />
-                  Lessons
+                  <MessageCircle size={16} />
+                  Teacher chat
                 </Link>
-                <Link
-                  to="/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                    isDashboardActive
-                      ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <LayoutDashboard size={16} />
-                  Dashboard
-                </Link>
+                {user.role !== "admin" && (
+                  <>
+                    <Link
+                      to="/study-hub"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+                    >
+                      <Target size={16} />
+                      Study Hub
+                    </Link>
+                    <Link
+                      to="/lessons"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                        isLessonsActive
+                          ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
+                          : "text-slate-300 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      <BookOpen size={16} />
+                      Lessons
+                    </Link>
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                        isDashboardActive
+                          ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
+                          : "text-slate-300 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      <LayoutDashboard size={16} />
+                      Dashboard
+                    </Link>
+                  </>
+                )}
                 {user.role === "admin" && (
                   <Link
                     to="/admin"
