@@ -28,4 +28,17 @@ const markNotificationRead = async (req, res) => {
   }
 };
 
-module.exports = { getNotifications, markNotificationRead };
+const markNotificationsRead = async (req, res) => {
+  try {
+    await Notification.updateMany(
+      { recipient: req.user.userId, read: false },
+      { $set: { read: true } }
+    );
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("READ ALL NOTIFICATIONS ERROR:", error);
+    return res.status(500).json({ success: false, message: "Failed to update notifications." });
+  }
+};
+
+module.exports = { getNotifications, markNotificationRead, markNotificationsRead };

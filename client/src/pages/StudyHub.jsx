@@ -4,6 +4,7 @@ import { ArrowRight, BookOpen, BrainCircuit, Flame, Gauge, Sparkles, Target, Tre
 import api from "../services/api";
 import { useAuth } from "../context/authContext";
 import Navbar from "../components/Navbar";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 function StudyHub() {
   const { user, updateUser } = useAuth();
@@ -153,9 +154,7 @@ function StudyHub() {
     return (
       <div className="min-h-screen bg-slate-950 text-white">
         <Navbar />
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
-        </div>
+        <LoadingSpinner className="min-h-[60vh]" />
       </div>
     );
   }

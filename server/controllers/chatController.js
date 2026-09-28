@@ -3,7 +3,7 @@ const ChatConversation = require("../models/ChatConversation");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
 
-const conversationFields = "firstName lastName email role";
+const conversationFields = "firstName lastName email role lastSeenAt";
 
 const conversationResponse = (conversation) => {
   const data = conversation.toObject ? conversation.toObject() : conversation;
@@ -18,6 +18,7 @@ const getStudentConversation = async (studentId) => ChatConversation.findOne({ s
 
 const listConversations = async (req, res) => {
   try {
+    await User.findByIdAndUpdate(req.user.userId, { lastSeenAt: new Date() });
     const conversations = await ChatConversation.find({})
       .populate("student", conversationFields)
       .sort({ lastMessageAt: -1, updatedAt: -1 });
@@ -31,14 +32,19 @@ const listConversations = async (req, res) => {
 const getConversation = async (req, res) => {
   try {
     const isAdmin = req.user.role === "admin";
+    await User.findByIdAndUpdate(req.user.userId, { lastSeenAt: new Date() });
     const conversation = isAdmin
       ? (mongoose.Types.ObjectId.isValid(req.params.conversationId)
         ? await ChatConversation.findById(req.params.conversationId).populate("student", conversationFields)
         : null)
       : await getStudentConversation(req.user.userId);
 
+    const participant = isAdmin
+      ? conversation?.student || null
+      : await User.findOne({ role: "admin" }).select(conversationFields);
+
     if (!conversation) {
-      return res.status(200).json({ success: true, conversation: null });
+      return res.status(200).json({ success: true, conversation: null, participant });
     }
 
     if (isAdmin) {
@@ -46,9 +52,19 @@ const getConversation = async (req, res) => {
     } else {
       conversation.unreadForStudent = 0;
     }
+    const readAt = new Date();
+    conversation.messages.forEach((message) => {
+      if (String(message.sender) !== String(req.user.userId) && !message.readAt) {
+        message.readAt = readAt;
+      }
+    });
     await conversation.save();
 
-    return res.status(200).json({ success: true, conversation: conversationResponse(conversation) });
+    return res.status(200).json({
+      success: true,
+      conversation: conversationResponse(conversation),
+      participant,
+    });
   } catch (error) {
     console.error("GET CHAT CONVERSATION ERROR:", error);
     return res.status(500).json({ success: false, message: "Failed to load conversation." });

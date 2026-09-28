@@ -6,6 +6,7 @@ import api from "../services/api";
 import { useAuth } from "../context/authContext";
 import Navbar from "../components/Navbar";
 import Hero3DWrapper from "../components/Hero3DWrapper";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -69,15 +70,7 @@ function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
-        <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
-
-          <p className="mt-4 text-slate-400">
-            Loading your dashboard...
-          </p>
-        </div>
-      </div>
+      <LoadingSpinner fullScreen label="Loading your dashboard..." />
     );
   }
 
@@ -257,7 +250,7 @@ function Dashboard() {
         <section className="mt-10 grid gap-6 lg:grid-cols-3">
 
           {/* AI Tutor */}
-          <div className="relative overflow-hidden rounded-3xl bg-indigo-600 p-6 sm:p-8 lg:col-span-2">
+          <div className="ai-tutor-card relative overflow-hidden rounded-3xl p-6 sm:p-8 lg:col-span-2">
 
             <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10" />
 
@@ -333,9 +326,7 @@ function Dashboard() {
 
           {/* Topics loading */}
           {topicsLoading && (
-            <div className="mt-7 flex justify-center py-10">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
-            </div>
+            <LoadingSpinner size="sm" className="mt-7 py-10" />
           )}
 
           {/* No topics */}

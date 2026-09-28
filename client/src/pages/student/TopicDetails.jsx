@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, BookOpen, Clock3, PlayCircle, Sparkles, CheckCircle2 } from "lucide-react";
 import api from "../../services/api";
 import VideoPlayer from "../../components/VideoPlayer";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import { useAuth } from "../../context/authContext";
 
 
@@ -748,13 +749,6 @@ function TopicDetails() {
     ? Math.round((levelCorrect.length / questionBank.length) * 100)
     : 0;
 
-  const questionLearningPath = [
-    `Read question ${questionIndex + 1}: identify what it asks`,
-    `Use the hint: ${currentQuestion.hint}`,
-    "Work through the calculation step by step",
-    "Check your answer against the question",
-  ];
-
   const checkAnswer = async () => {
     const normalise = (value) => value.trim().toLowerCase().replace(/\s+/g, "");
     const isCorrect = normalise(answer) === normalise(currentQuestion.answer);
@@ -803,11 +797,11 @@ function TopicDetails() {
     setShowVisualExplanation(false);
   };
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-300">Loading your lesson...</div>;
+  if (loading) return <LoadingSpinner fullScreen label="Loading your lesson..." />;
   if (error || !topic) return <div className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-center text-red-300">{error || "Topic not found."}</div>;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="topic-details-page min-h-screen bg-slate-950 text-white">
       <nav className="border-b border-white/10 bg-slate-950/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5">
           <Link to="/dashboard" className="shrink-0 text-xl font-black sm:text-2xl">MathMind<span className="text-indigo-400"> AI</span></Link>
@@ -868,21 +862,24 @@ function TopicDetails() {
 
 
 
-        <section className="mt-6 grid gap-4 sm:mt-8 sm:gap-6 lg:grid-cols-2">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-8">
-            <p className="text-sm font-bold uppercase tracking-wider text-indigo-300">Understand first</p>
-            <h2 className="mt-2 text-2xl font-black">Targeted Lesson Strategy</h2>
-            <p className="mt-4 leading-7 text-slate-300">This question asks: {currentQuestion.prompt}</p>
-            <div className="mt-5 rounded-2xl border border-indigo-400/15 bg-indigo-400/5 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-indigo-300">Remember</p>
-              <p className="mt-2 text-sm leading-6 text-slate-400">{currentQuestion.hint}</p>
+        <section className="mt-6 grid items-stretch gap-4 sm:mt-8 sm:gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <article className="rounded-3xl border border-indigo-300/15 bg-indigo-300/[0.06] p-5 sm:p-7">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-300">Understand the idea</p>
+            <h2 className="mt-2 text-2xl font-black">Key idea</h2>
+            <p className="mt-3 text-base leading-7 text-slate-200">{guide.idea}</p>
+            <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/45 p-4 sm:p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Worked example</p>
+              <p className="mt-3 font-mono text-sm leading-7 text-slate-100 sm:text-base">{guide.example}</p>
             </div>
-            <h3 className="mt-7 text-sm font-bold uppercase tracking-wider text-slate-500">Lesson step-by-step path</h3>
-            <div className="mt-6 space-y-4">{questionLearningPath.map((stepItem, index) => <div key={stepItem} className="flex items-center gap-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 text-sm font-bold text-indigo-300">{index + 1}</span><span className="text-slate-200">{stepItem}</span></div>)}</div>
-          </div>
-          <div className="motion-surface reveal-on-scroll rounded-3xl border border-amber-300/15 bg-amber-300/5 p-4 sm:p-8">
+            <p className="mt-5 text-sm leading-6 text-slate-400">Try the practice question on the right. Use the idea and example as a guide, then check your answer.</p>
+          </article>
+
+          <div className="motion-surface reveal-on-scroll rounded-3xl border border-amber-300/15 bg-amber-300/5 p-4 sm:p-7">
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <p className="text-sm font-bold uppercase tracking-wider text-amber-300">Lesson Practice</p>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-300">Your turn</p>
+                <h2 className="mt-1 text-2xl font-black">Practice</h2>
+              </div>
               <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                 <span className="rounded-full bg-indigo-300/15 px-3 py-1.5 text-indigo-200">Progress: {progressPercentage}%</span>
                 <span className="rounded-full bg-white/10 px-3 py-1.5 text-slate-300">Attempted: {levelAttempts.length}/{questionBank.length}</span>
@@ -923,9 +920,14 @@ function TopicDetails() {
                 ))}
               </div>
             </div>
-            <h2 className="mt-3 text-2xl font-black">{guide.title} Practice Box</h2>
-            <p className="mt-4 text-sm font-bold uppercase tracking-wider text-amber-300">Question {questionIndex + 1} of {questionBank.length}</p>
-            <p className="mt-4 min-h-14 leading-7 text-slate-200">{currentQuestion.prompt}</p>
+            <div className="mt-6 rounded-2xl border border-amber-200/15 bg-slate-950/45 p-4 sm:p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-200">Question {questionIndex + 1} of {questionBank.length}</p>
+              <p className="mt-3 text-lg font-semibold leading-8 text-white sm:text-xl">{currentQuestion.prompt}</p>
+            </div>
+            <details className="group mt-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+              <summary className="cursor-pointer text-sm font-semibold text-indigo-200 marker:text-indigo-300">Need a hint?</summary>
+              <p className="mt-3 border-t border-white/10 pt-3 text-sm leading-6 text-slate-300">{currentQuestion.hint}</p>
+            </details>
             <label className="mt-5 block text-sm font-semibold text-slate-300" htmlFor="practice-answer">Your answer</label>
             <input id="practice-answer" value={answer} disabled={savingProgress} onChange={(event) => { setAnswer(event.target.value); setAnswerState(""); }} onKeyDown={(event) => event.key === "Enter" && checkAnswer()} placeholder="Type your answer" className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/70 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-amber-300/70 disabled:cursor-wait disabled:opacity-60" />
             {answerState === "saving" && <p className="mt-3 text-sm font-semibold text-sky-200">Saving your answer...</p>}

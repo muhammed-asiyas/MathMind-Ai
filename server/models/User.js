@@ -53,6 +53,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    lastSeenAt: {
+      type: Date,
+      default: null,
+    },
     preferredTopic: {
       type: String,
       default: "Algebra",

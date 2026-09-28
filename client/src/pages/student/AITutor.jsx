@@ -104,7 +104,7 @@ function AITutor() {
 					<button type="button" onClick={resetChat} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"><RotateCcw size={15} /> New conversation</button>
 				</aside>
 
-				<section className="flex min-h-[calc(100dvh-5rem)] min-w-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 shadow-2xl shadow-indigo-950/20 sm:rounded-[2rem] lg:min-h-[calc(100vh-7rem)]">
+				<section className="flex min-h-[calc(100dvh-5rem)] min-w-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white-900/70 shadow-2xl shadow-indigo-950/20 sm:rounded-[2rem] lg:min-h-[calc(100vh-7rem)]">
 					<header className="border-b border-white/10 px-4 py-4 sm:px-8 sm:py-5">
 						<div className="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
 							<div className="flex min-w-0 items-center gap-3">

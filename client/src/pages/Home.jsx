@@ -155,9 +155,9 @@ function Home() {
           </motion.div>
 
           <motion.div className="relative mx-auto w-full max-w-xl" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.15 }}>
-            <motion.div className="absolute -right-2 top-6 z-10 rounded-2xl border border-emerald-300/20 bg-slate-900/90 px-4 py-3 shadow-xl backdrop-blur sm:-right-8" animate={{ y: [0, -8, 0] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">Today&apos;s progress</p>
-              <p className="mt-1 text-lg font-black text-white">{solvedText} solved <span className="text-emerald-300">✓</span></p>
+            <motion.div className="home-progress-card absolute -right-2 top-6 z-10 rounded-2xl border border-emerald-300/20 bg-slate-900/90 px-4 py-3 shadow-xl backdrop-blur sm:-right-8" animate={{ y: [0, -8, 0] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}>
+              <p className="home-progress-label text-[10px] font-bold uppercase tracking-wider text-emerald-300">Today&apos;s progress</p>
+              <p className="home-progress-value mt-1 text-lg font-black text-white">{solvedText} solved <span className="text-emerald-300">✓</span></p>
             </motion.div>
 
             <div className="rounded-[2rem] border border-white/10 bg-white/5 p-2 shadow-2xl shadow-indigo-950/50 backdrop-blur sm:p-4">

@@ -17,19 +17,15 @@ import {
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Hero3DWrapper from "../components/Hero3DWrapper";
+import LoadingSpinner from "../components/LoadingSpinner";
 import api from "../services/api";
 
 const emptyTopic = { title: "", description: "", icon: "📚", difficulty: "Beginner", order: "" };
 const emptyLesson = { topic: "", title: "", questionSetKey: "", description: "", videoUrl: "", difficulty: "Beginner", order: "1", duration: "10" };
 const emptyStudent = { firstName: "", lastName: "", email: "", password: "" };
 
-// ── Small reusable spinner ──────────────────────────────────────────────────
 function Spinner() {
-  return (
-    <div className="flex items-center justify-center py-12">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
-    </div>
-  );
+  return <LoadingSpinner size="sm" className="py-12" />;
 }
 
 

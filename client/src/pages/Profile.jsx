@@ -69,12 +69,12 @@ function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="profile-page min-h-screen bg-slate-950 text-white">
       <Navbar />
 
       <main className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
         <motion.section
-          className="relative overflow-hidden rounded-b-[2rem] border-x border-b border-white/10 bg-gradient-to-br from-indigo-500/20 via-slate-900 to-cyan-500/10 px-6 py-10 sm:px-10 sm:py-14"
+          className="profile-hero relative overflow-hidden rounded-b-[2rem] border-x border-b border-white/10 bg-gradient-to-br from-indigo-500/20 via-slate-600 to-cyan-900/10 px-6 py-10 sm:px-10 sm:py-14"
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -84,17 +84,17 @@ function Profile() {
               <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">
                 <Sparkles size={15} /> Your account
               </p>
-              <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Profile & preferences</h1>
-              <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+              <h1 className="profile-hero-title mt-3 text-4xl font-black tracking-tight sm:text-5xl">Profile & preferences</h1>
+              <p className="profile-hero-copy mt-4 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
                 Shape MathMind around the way you learn. Your preferences help keep every next step focused and useful.
               </p>
             </div>
-            <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 backdrop-blur">
+            <div className="profile-identity flex items-center gap-4 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 backdrop-blur">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500 text-lg font-black shadow-lg shadow-indigo-950/40">
                 {initials}
               </div>
               <div>
-                <p className="font-bold text-white">{form.firstName || "MathMind"} {form.lastName}</p>
+                <p className="profile-identity-name font-bold text-white">{form.firstName || "MathMind"} {form.lastName}</p>
                 <p className="text-xs text-slate-400">Member since {memberSince}</p>
               </div>
             </div>
@@ -140,7 +140,7 @@ function Profile() {
 
                 <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {topics.map((topic) => (
-                    <button key={topic} type="button" onClick={() => { setForm((current) => ({ ...current, preferredTopic: topic })); setSaved(false); }} className={`motion-button rounded-xl border px-3 py-3 text-sm font-bold transition ${form.preferredTopic === topic ? "border-indigo-400 bg-indigo-500/15 text-indigo-200 shadow-lg shadow-indigo-950/20" : "border-white/10 bg-slate-950/30 text-slate-400 hover:border-white/25 hover:text-white"}`}>
+                    <button key={topic} type="button" onClick={() => { setForm((current) => ({ ...current, preferredTopic: topic })); setSaved(false); }} className={`profile-choice motion-button rounded-xl border px-3 py-3 text-sm font-bold transition ${form.preferredTopic === topic ? "is-selected border-indigo-400 bg-indigo-500/15 text-indigo-200 shadow-lg shadow-indigo-950/20" : "border-white/10 bg-slate-950/30 text-slate-400 hover:border-white/25 hover:text-white"}`}>
                       {topic}
                     </button>
                   ))}
@@ -150,7 +150,7 @@ function Profile() {
                   <p className="text-sm font-semibold text-slate-300">Daily practice goal</p>
                   <div className="mt-3 grid grid-cols-4 gap-3">
                     {goals.map((goal) => (
-                      <button key={goal} type="button" onClick={() => { setForm((current) => ({ ...current, dailyGoal: goal })); setSaved(false); }} className={`motion-button rounded-xl border px-2 py-3 text-center transition ${Number(form.dailyGoal) === goal ? "border-cyan-300 bg-cyan-400/10 text-cyan-200" : "border-white/10 bg-slate-950/30 text-slate-400 hover:border-white/25 hover:text-white"}`}>
+                      <button key={goal} type="button" onClick={() => { setForm((current) => ({ ...current, dailyGoal: goal })); setSaved(false); }} className={`profile-choice motion-button rounded-xl border px-2 py-3 text-center transition ${Number(form.dailyGoal) === goal ? "is-selected border-cyan-300 bg-cyan-400/10 text-cyan-200" : "border-white/10 bg-slate-950/30 text-slate-400 hover:border-white/25 hover:text-white"}`}>
                         <span className="block text-lg font-black">{goal}</span>
                         <span className="text-[10px] uppercase tracking-wider">questions</span>
                       </button>

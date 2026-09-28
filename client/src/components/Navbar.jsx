@@ -1,23 +1,49 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
-import { LayoutDashboard, BookOpen, LogOut, Menu, X, User, Target, ShieldCheck, MessageCircle } from "lucide-react";
+import { LayoutDashboard, BookOpen, LogOut, Menu, X, User, Target, ShieldCheck, MessageCircle, Moon, Sun } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import api from "../services/api";
+import { useTheme } from "../context/themeContext";
 
 function Navbar() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const pathname = location.pathname;
   const hash = location.hash;
 
   useEffect(() => {
+    if (!user) {
+      return undefined;
+    }
+
+    let active = true;
+    const loadUnreadCount = async () => {
+      try {
+        const response = await api.get("/notifications");
+        if (active) setUnreadCount(response.data?.unreadCount || 0);
+      } catch (error) {
+        if (active) console.error("Unable to load chat notification count:", error);
+      }
+    };
+
+    loadUnreadCount();
+    const interval = window.setInterval(loadUnreadCount, 5000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [pathname, user]);
+
+  useEffect(() => {
     if (pathname !== "/") {
-      setActiveSection("");
       return;
     }
 
@@ -35,13 +61,7 @@ function Navbar() {
       }
     };
 
-    if (hash === "#features") {
-      setActiveSection("features");
-    } else if (hash === "#about") {
-      setActiveSection("about");
-    } else {
-      handleScroll();
-    }
+    handleScroll();
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -73,6 +93,43 @@ function Navbar() {
     logout();
     navigate("/login", { replace: true });
   };
+
+  const themeLabel = theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
+  const visibleUnreadCount = pathname === "/chat" || !user ? 0 : unreadCount;
+
+  const themeToggle = (
+    <motion.button
+      type="button"
+      onClick={toggleTheme}
+      title={themeLabel}
+      aria-label={themeLabel}
+      whileHover={{ scale: 1.08, rotateX: -8, rotateY: 8 }}
+      whileTap={{ scale: 0.9, rotateX: 0, rotateY: 180 }}
+      transition={{ type: "spring", stiffness: 360, damping: 18 }}
+      className="theme-toggle theme-toggle-3d flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-amber-200"
+    >
+      <AnimatePresence initial={false} mode="wait">
+        <motion.span key={theme} className="theme-toggle-icon" initial={{ opacity: 0, rotateY: -100, scale: 0.65, z: -12 }} animate={{ opacity: 1, rotateY: 0, scale: 1, z: 0 }} exit={{ opacity: 0, rotateY: 100, scale: 0.65, z: -12 }} transition={{ duration: 0.32, ease: "easeOut" }}>
+          {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+        </motion.span>
+      </AnimatePresence>
+    </motion.button>
+  );
+
+  const chatLink = (mobile = false) => (
+    <Link
+      to="/chat"
+      onClick={mobile ? () => setMobileMenuOpen(false) : undefined}
+      className={`${mobile ? "flex gap-2 rounded-lg px-3 py-2" : "flex items-center gap-1.5 rounded-xl px-3 py-2"} relative font-medium transition-all ${
+        isChatActive
+          ? "bg-cyan-300/15 text-cyan-200 border border-cyan-300/30 font-semibold"
+          : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
+      }`}
+    >
+      <span className="relative flex"><MessageCircle size={mobile ? 16 : 17} />{visibleUnreadCount > 0 && <span className="chat-badge absolute -right-3 -top-3">{visibleUnreadCount > 99 ? "99+" : visibleUnreadCount}</span>}</span>
+      {mobile ? "Teacher chat" : "Chat"}
+    </Link>
+  );
 
   return (
     <header>
@@ -110,17 +167,19 @@ function Navbar() {
               About
             </a>
 
+            {themeToggle}
+
             {user ? (
               <div className="flex items-center gap-3 border-l border-white/10 pl-3">
                 {user.role !== "admin" && (
                   <>
-                    <Link
+                    {/* <Link
                       to="/study-hub"
                       className="flex items-center gap-1.5 rounded-xl border border-transparent px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/5 hover:text-white"
                     >
                       <Target size={16} />
                       Study Hub
-                    </Link>
+                    </Link> */}
 
                     <Link
                       to="/lessons"
@@ -158,17 +217,7 @@ function Navbar() {
                   </Link>
                 )}
 
-                <Link
-                  to="/chat"
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
-                    isChatActive
-                      ? "bg-cyan-300/15 text-cyan-200 border border-cyan-300/30 font-semibold"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
-                  }`}
-                >
-                  <MessageCircle size={16} />
-                  Chat
-                </Link>
+                {chatLink()}
 
                 <div className="flex items-center gap-3 pl-2">
                   <Link
@@ -236,6 +285,8 @@ function Navbar() {
                 Dashboard
               </Link>
             )}
+
+            {themeToggle}
 
             <button
               type="button"
@@ -305,18 +356,7 @@ function Navbar() {
                 <p className="text-xs text-indigo-300 font-medium px-3">
                   Logged in as {user.firstName} {user.lastName}
                 </p>
-                <Link
-                  to="/chat"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                    isChatActive
-                      ? "bg-cyan-300/15 text-cyan-200 border border-cyan-300/30 font-semibold"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <MessageCircle size={16} />
-                  Teacher chat
-                </Link>
+                {chatLink(true)}
                 {user.role !== "admin" && (
                   <>
                     <Link

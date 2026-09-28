@@ -1,11 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Check, MessageCircle, Send, Users } from "lucide-react";
+import { ArrowLeft, Check, CheckCheck, MessageCircle, Send, Users } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/authContext";
 import api from "../services/api";
 
 const formatTime = (date) => new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" }).format(new Date(date));
+const presenceLabel = (lastSeenAt) => {
+  if (!lastSeenAt) return "Offline";
+  const lastSeen = new Date(lastSeenAt);
+  if (Date.now() - lastSeen.getTime() < 15000) return "Online";
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const sameDay = (left, right) => left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate();
+  const time = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" }).format(lastSeen);
+  if (sameDay(lastSeen, now)) return `Last seen today, ${time}`;
+  if (sameDay(lastSeen, yesterday)) return `Last seen yesterday, ${time}`;
+  return `Last seen ${new Intl.DateTimeFormat([], { dateStyle: "medium", timeStyle: "short" }).format(lastSeen)}`;
+};
 
 function Chat() {
   const { user } = useAuth();
@@ -13,6 +28,7 @@ function Chat() {
   const [conversations, setConversations] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [conversation, setConversation] = useState(null);
+  const [participant, setParticipant] = useState(null);
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -20,6 +36,8 @@ function Chat() {
   const messageEndRef = useRef(null);
 
   useEffect(() => {
+    api.patch("/notifications/read-all").catch(() => {});
+
     let active = true;
     const load = async () => {
       try {
@@ -28,7 +46,10 @@ function Chat() {
         const nextConversations = data.conversations || (data.conversation ? [data.conversation] : []);
         setConversations(nextConversations);
         if (isAdmin && !selectedId && nextConversations[0]) setSelectedId(nextConversations[0]._id);
-        if (!isAdmin && data.conversation) setConversation(data.conversation);
+        if (!isAdmin) {
+          setConversation(data.conversation || null);
+          setParticipant(data.participant || null);
+        }
       } catch (requestError) {
         if (active) setError(requestError.response?.data?.message || "Could not load chat.");
       } finally {
@@ -46,7 +67,10 @@ function Chat() {
     const loadSelected = async () => {
       try {
         const { data } = await api.get(`/chat/conversations/${selectedId}`);
-        if (active) setConversation(data.conversation);
+        if (active) {
+          setConversation(data.conversation);
+          setParticipant(data.participant || data.conversation?.student || null);
+        }
       } catch (requestError) {
         if (active) setError(requestError.response?.data?.message || "Could not load messages.");
       }
@@ -86,6 +110,8 @@ function Chat() {
   };
 
   const student = conversation?.student;
+  const chatParticipant = isAdmin ? student : participant;
+  const participantPresence = presenceLabel(chatParticipant?.lastSeenAt);
   const title = isAdmin
     ? (student ? `${student.firstName} ${student.lastName}` : "Select a student")
     : "Your teacher";
@@ -121,10 +147,10 @@ function Chat() {
           </aside>}
 
           <section className="flex min-h-[560px] flex-col">
-            <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4 sm:px-7"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-200"><MessageCircle size={19} /></div><div><p className="font-bold">{title}</p><p className="text-xs text-slate-500">{isAdmin ? "Teacher workspace" : "Usually replies during learning hours"}</p></div></div>
+            <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4 sm:px-7"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-200"><MessageCircle size={19} /></div><div><p className="font-bold">{title}</p><p className={`flex items-center gap-1.5 text-xs ${participantPresence === "Online" ? "text-emerald-300" : "text-slate-500"}`}><span className={`h-1.5 w-1.5 rounded-full ${participantPresence === "Online" ? "bg-emerald-300" : "bg-slate-500"}`} />{chatParticipant ? participantPresence : isAdmin ? "Teacher workspace" : "Usually replies during learning hours"}</p></div></div>
             <div className="flex-1 space-y-4 overflow-y-auto p-5 sm:p-7">
               {!conversation && <div className="flex h-full min-h-[350px] flex-col items-center justify-center text-center"><MessageCircle size={34} className="text-slate-600" /><p className="mt-4 font-bold text-slate-300">{isAdmin ? "Choose a student conversation" : "Start a conversation with your teacher"}</p><p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">{isAdmin ? "Incoming student questions will be ready here." : "There is no question here yet. Send your first message below."}</p></div>}
-              {conversation?.messages?.map((message) => { const mine = String(message.sender) === String(user?.id || user?._id); return <div key={message._id} className={`flex ${mine ? "justify-end" : "justify-start"}`}><div className={`max-w-[82%] rounded-2xl px-4 py-3 ${mine ? "rounded-br-md bg-cyan-300 text-slate-950" : "rounded-bl-md bg-white/10 text-slate-100"}`}><p className="whitespace-pre-wrap text-sm leading-6">{message.body}</p><p className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-slate-700" : "text-slate-500"}`}>{formatTime(message.createdAt)} {mine && <Check size={12} />}</p></div></div>; })}
+              {conversation?.messages?.map((message) => { const mine = String(message.sender) === String(user?.id || user?._id); return <div key={message._id} className={`flex ${mine ? "justify-end" : "justify-start"}`}><div className={`max-w-[82%] rounded-2xl px-4 py-3 ${mine ? "rounded-br-md bg-cyan-300 text-slate-950" : "rounded-bl-md bg-white/10 text-slate-100"}`}><p className="whitespace-pre-wrap text-sm leading-6">{message.body}</p><p className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-slate-700" : "text-slate-500"}`}>{formatTime(message.createdAt)} {mine && (message.readAt ? <CheckCheck size={14} className="text-cyan-900" aria-label="Seen" /> : <Check size={12} aria-label="Sent" />)}</p></div></div>; })}
               <div ref={messageEndRef} />
             </div>
             <form onSubmit={sendMessage} className="border-t border-white/10 p-4 sm:p-5"><div className="flex items-end gap-3"><textarea value={body} onChange={(event) => setBody(event.target.value)} disabled={isAdmin && !selectedId} maxLength={2000} rows={2} placeholder={isAdmin && !selectedId ? "Select a student first" : "Write your maths question..."} className="min-h-[52px] flex-1 resize-none rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/50" /><button type="submit" disabled={sending || !body.trim() || (isAdmin && !selectedId)} title="Send message" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-300 text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"><Send size={18} /></button></div><p className="mt-2 text-right text-[11px] text-slate-600">{body.length}/2000</p></form>

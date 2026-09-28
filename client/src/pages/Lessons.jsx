@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
+import LoadingSpinner from "../components/LoadingSpinner";
 import {
   BookOpen,
   Clock,
@@ -232,7 +233,7 @@ function Lessons() {
   const totalLessonsCount = activeStages.reduce((acc, stage) => acc + stage.lessons.length, 0);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="lessons-page min-h-screen bg-slate-950 text-white">
       {/* Navbar */}
       <Navbar />
 
@@ -318,12 +319,7 @@ function Lessons() {
 
         {/* Loading Spinner */}
         {loading && (
-          <div className="mt-16 flex justify-center py-12">
-            <div className="text-center">
-              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
-              <p className="mt-4 text-sm text-slate-400">Building your learning route map...</p>
-            </div>
-          </div>
+          <LoadingSpinner label="Building your learning route map..." className="mt-16 py-12" />
         )}
 
         {/* ROUTE MAP ROADMAP VIEW */}
