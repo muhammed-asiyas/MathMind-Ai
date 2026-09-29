@@ -19,7 +19,6 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const app = express();
 const allowedOrigins = new Set([
   "http://localhost:5173",
-  "https://math-mind-ai-five.vercel.app",
   ...(process.env.CLIENT_URLS || process.env.CLIENT_URL || "")
     .split(",")
     .map((origin) => origin.trim())
