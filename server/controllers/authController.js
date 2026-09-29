@@ -101,6 +101,7 @@ const registerUser = async (req, res) => {
 };
 
 const loginUser = async (req, res) => {
+  console.log("Inside Login")
   try {
     const { email, password, timeZone } = req.body;
 
