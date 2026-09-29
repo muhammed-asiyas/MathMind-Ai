@@ -17,12 +17,22 @@ const chatRoutes = require("./routes/chatRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 
 const app = express();
+const configuredOrigins = (process.env.CLIENT_URLS || process.env.CLIENT_URL || "")
+  .split(",")
+  .map((value) => {
+    const trimmedValue = value.trim();
+    try {
+      return new URL(trimmedValue).origin;
+    } catch {
+      return trimmedValue;
+    }
+  })
+  .filter(Boolean);
 const allowedOrigins = new Set([
   "http://localhost:5173",
-  ...(process.env.CLIENT_URLS || process.env.CLIENT_URL || "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean),
+
+  "https://mathmind-ai-client.vercel.app",
+  ...configuredOrigins,
 ]);
 
 // Middleware
