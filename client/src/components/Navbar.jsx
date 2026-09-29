@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
-import { LayoutDashboard, BookOpen, LogOut, Menu, X, User, Target, ShieldCheck, MessageCircle, Moon, Sun } from "lucide-react";
+import { LayoutDashboard, BookOpen, LogOut, Menu, X, User, ShieldCheck, MessageCircle, Moon, Sun } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import api from "../services/api";
 import { useTheme } from "../context/themeContext";
@@ -359,14 +359,6 @@ function Navbar() {
                 {chatLink(true)}
                 {user.role !== "admin" && (
                   <>
-                    <Link
-                      to="/study-hub"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
-                    >
-                      <Target size={16} />
-                      Study Hub
-                    </Link>
                     <Link
                       to="/lessons"
                       onClick={() => setMobileMenuOpen(false)}
