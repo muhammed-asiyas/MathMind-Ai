@@ -5,7 +5,9 @@ import { ArrowLeft, BookOpen, Clock3, PlayCircle, Sparkles, CheckCircle2 } from 
 import api from "../../services/api";
 import VideoPlayer from "../../components/VideoPlayer";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import IconGlyph from "../../components/IconGlyph";
 import { useAuth } from "../../context/authContext";
+import { playSuccess } from "../../utils/soundEffects";
 
 
 const lessonGuides = {
@@ -477,67 +479,6 @@ function getLessonGuide(topicTitle = "", lessonTitle = "", lessonOrder = 1) {
   return lessonGuides["variables-expressions"];
 }
 
-function MathVisual({ type }) {
-  if (type === "geometry") {
-    return (
-      <div className="relative flex h-52 items-center justify-center overflow-hidden rounded-2xl bg-sky-500/10">
-        <motion.div
-          className="h-32 w-44 border-4 border-sky-300 bg-sky-300/10"
-          animate={{ rotate: [0, 3, -3, 0], scale: [1, 1.04, 1] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <span className="absolute bottom-5 rounded-full bg-sky-300/15 px-3 py-1 text-xs font-semibold text-sky-200">length x width</span>
-      </div>
-    );
-  }
-
-  if (type === "fractions") {
-    return (
-      <div className="flex h-52 items-center justify-center rounded-2xl bg-amber-400/10">
-        <div className="grid w-56 grid-cols-4 gap-2">
-          {[0, 1, 2, 3].map((part) => (
-            <motion.div
-              key={part}
-              className={`h-20 rounded-lg border-2 border-amber-200/60 ${part < 3 ? "bg-amber-300" : "bg-amber-300/10"}`}
-              animate={{ opacity: part < 3 ? [0.55, 1, 0.55] : 0.4 }}
-              transition={{ duration: 2, delay: part * 0.15, repeat: Infinity }}
-            />
-          ))}
-          <p className="col-span-4 text-center text-sm font-semibold text-amber-100">3 of 4 parts = 3/4</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (type === "statistics") {
-    return (
-      <div className="flex h-52 items-end justify-center gap-3 rounded-2xl bg-cyan-500/10 px-10 pb-8">
-        {[40, 70, 55, 90, 62].map((height, index) => (
-          <motion.div
-            key={index}
-            className="w-8 rounded-t-lg bg-cyan-300/80"
-            initial={{ height: 0 }}
-            animate={{ height: `${height}px` }}
-            transition={{ duration: 0.5, delay: index * 0.08 }}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-52 items-center justify-center rounded-2xl bg-emerald-500/10">
-      <motion.div
-        className="grid grid-cols-3 gap-3"
-        animate={{ scale: [1, 1.06, 1] }}
-        transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-      >
-        {[8, 4, 8, 2, 6, 4].map((number, index) => <span key={index} className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-300/20 text-sm font-bold text-emerald-100">{number}</span>)}
-      </motion.div>
-    </div>
-  );
-}
-
 function ExplanationVisual({ question, topicType, step }) {
   const visualCopy = {
     algebra: ["Read the equation", "Name the unknown", "Undo the constant", "Undo the multiplier", `Answer: ${question.answer}`],
@@ -664,7 +605,7 @@ function TopicDetails() {
         ]);
         const selectedTopic = (topicsResponse.data.topics || []).find(
           (item) => item._id === topicId || item.title.toLowerCase().includes(topicId.toLowerCase())
-        ) || { _id: topicId, title: topicId, icon: "📚", description: "Mathematics practice and interactive lessons." };
+        ) || { _id: topicId, title: topicId, icon: "book", description: "Mathematics practice and interactive lessons." };
 
         setTopic(selectedTopic);
         setLessons(lessonsResponse.data.lessons || []);
@@ -766,6 +707,9 @@ function TopicDetails() {
       const progress = response.data.progress || {};
       setTopicAttempts(progress.attemptedQuestions || []);
       setTopicCorrect(progress.correctQuestions || []);
+      if (isCorrect) {
+        playSuccess();
+      }
       setAnswerState(response.data.alreadyAttempted ? "already-attempted" : isCorrect ? "correct" : "try-again");
     } catch (requestError) {
       console.error("SAVE PROGRESS ERROR:", requestError);
@@ -822,7 +766,7 @@ function TopicDetails() {
             <Sparkles size={14} />
             {guide.eyebrow}
           </div>
-          <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl md:text-5xl">{topic.icon} {guide.title}</h1>
+          <h1 className="mt-4 flex items-center gap-3 text-3xl font-black tracking-tight sm:text-4xl md:text-5xl"><IconGlyph name={topic.icon} size={30} className="shrink-0 text-indigo-300" />{guide.title}</h1>
           <p className="mt-4 text-lg leading-8 text-slate-400">{guide.summary}</p>
         </header>
 

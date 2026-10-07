@@ -4,10 +4,14 @@ const Lesson = require("../models/Lesson");
 const Progress = require("../models/Progress");
 const bcrypt = require("bcryptjs");
 
+const ONLINE_WINDOW_MS = 90 * 1000;
+
 const getAdminOverview = async (req, res) => {
   try {
-    const [studentCount, topicCount, lessonCount, progressCount, recentStudents, topics] = await Promise.all([
+    const onlineSince = new Date(Date.now() - ONLINE_WINDOW_MS);
+    const [studentCount, onlineStudentCount, topicCount, lessonCount, progressCount, recentStudents, topics] = await Promise.all([
       User.countDocuments({ role: "student" }),
+      User.countDocuments({ role: "student", lastSeenAt: { $gte: onlineSince } }),
       Topic.countDocuments(),
       Lesson.countDocuments(),
       Progress.countDocuments(),
@@ -27,7 +31,7 @@ const getAdminOverview = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      metrics: { studentCount, topicCount, lessonCount, progressCount },
+      metrics: { studentCount, onlineStudentCount, topicCount, lessonCount, progressCount },
       recentStudents,
       topics,
       lessons,

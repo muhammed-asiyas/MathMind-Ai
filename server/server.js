@@ -79,9 +79,14 @@ const startServer = async () => {
   await connectDB();
   await ensureQuestionIndexes();
 
-  app.listen(PORT, () => {
+  return app.listen(PORT, () => {
     console.log(`MathMind AI server running on port ${PORT}`);
   });
 };
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;
+module.exports.startServer = startServer;

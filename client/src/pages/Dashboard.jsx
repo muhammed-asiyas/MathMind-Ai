@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Flame, LogOut, X, Trophy, Medal, Users, TrendingUp } from "lucide-react";
+import { ArrowRight, BrainCircuit, Flame, LogOut, Sparkles, Target, Trophy, Medal, Users, TrendingUp, X } from "lucide-react";
 import api from "../services/api";
 import { useAuth } from "../context/authContext";
+import IconGlyph from "../components/IconGlyph";
 import Navbar from "../components/Navbar";
 import Hero3DWrapper from "../components/Hero3DWrapper";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -89,8 +90,8 @@ function Dashboard() {
             YOUR LEARNING SPACE
           </p>
 
-          <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl md:text-5xl">
-            Welcome back, {user?.firstName} 👋
+          <h1 className="mt-2 flex flex-wrap items-center gap-2 text-3xl font-black tracking-tight sm:text-4xl md:text-5xl">
+            <Sparkles size={25} className="text-emerald-300" aria-hidden="true" />Welcome back, {user?.firstName}
           </h1>
 
           <p className="mt-3 text-slate-400">
@@ -102,7 +103,7 @@ function Dashboard() {
         <section className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4" style={{ perspective: "1000px" }}>
 
           <motion.div whileHover={{ scale: 1.05, rotateY: 5, rotateX: -5 }} transition={{ type: "spring", stiffness: 300 }} className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6" style={{ transformStyle: "preserve-3d" }}>
-            <div className="text-3xl" style={{ transform: "translateZ(30px)" }}>⭐</div>
+            <div className="text-3xl" style={{ transform: "translateZ(30px)" }}><IconGlyph name="xp" size={27} className="text-amber-300" /></div>
 
             <p className="mt-4 text-sm text-slate-400" style={{ transform: "translateZ(20px)" }}>
               Total XP
@@ -114,7 +115,7 @@ function Dashboard() {
           </motion.div>
 
           <motion.div whileHover={{ scale: 1.05, rotateY: -5, rotateX: -5 }} transition={{ type: "spring", stiffness: 300 }} className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6" style={{ transformStyle: "preserve-3d" }}>
-            <div className="text-3xl" style={{ transform: "translateZ(30px)" }}>🏆</div>
+            <div className="text-3xl" style={{ transform: "translateZ(30px)" }}><IconGlyph name="level" size={27} className="text-indigo-300" /></div>
 
             <p className="mt-4 text-sm text-slate-400" style={{ transform: "translateZ(20px)" }}>
               Current Level
@@ -127,7 +128,7 @@ function Dashboard() {
           </motion.div>
 
           <motion.div whileHover={{ scale: 1.05, rotateY: 5, rotateX: -5 }} transition={{ type: "spring", stiffness: 300 }} className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6" style={{ transformStyle: "preserve-3d" }}>
-            <div className="text-3xl" style={{ transform: "translateZ(30px)" }}>🔥</div>
+            <div className="text-3xl" style={{ transform: "translateZ(30px)" }}><IconGlyph name="streak" size={27} className="text-orange-300" /></div>
 
             <p className="mt-4 text-sm text-slate-400" style={{ transform: "translateZ(20px)" }}>
               Learning Streak
@@ -142,7 +143,7 @@ function Dashboard() {
           </motion.div>
 
           <motion.div whileHover={{ scale: 1.05, rotateY: -5, rotateX: -5 }} transition={{ type: "spring", stiffness: 300 }} className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6" style={{ transformStyle: "preserve-3d" }}>
-            <div className="text-3xl" style={{ transform: "translateZ(30px)" }}>🎯</div>
+            <div className="text-3xl" style={{ transform: "translateZ(30px)" }}><IconGlyph name="goal" size={27} className="text-emerald-300" /></div>
 
             <p className="mt-4 text-sm text-slate-400" style={{ transform: "translateZ(20px)" }}>
               Daily Goal
@@ -256,7 +257,7 @@ function Dashboard() {
 
             <div className="relative">
 
-              <span className="text-5xl">🤖</span>
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-white"><BrainCircuit size={32} aria-hidden="true" /></span>
 
               <h2 className="mt-6 text-2xl font-black sm:text-3xl">
                 Meet your AI Math Tutor
@@ -270,9 +271,9 @@ function Dashboard() {
               <button
                 type="button"
                 onClick={() => navigate("/ai-tutor")}
-                className="mt-7 rounded-xl bg-white px-6 py-3 font-bold text-indigo-600 transition hover:bg-indigo-50"
+                className="ai-tutor-cta mt-7 rounded-xl bg-white px-6 py-3 font-bold text-indigo-600 transition hover:bg-indigo-50"
               >
-                Ask AI Tutor →
+                <span className="inline-flex items-center gap-2">Ask AI Tutor <ArrowRight size={16} aria-hidden="true" /></span>
               </button>
 
             </div>
@@ -281,7 +282,7 @@ function Dashboard() {
           {/* Daily Goal */}
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6 sm:p-8">
 
-            <span className="text-4xl">🎯</span>
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-300/10 text-emerald-300"><Target size={26} aria-hidden="true" /></span>
 
             <h2 className="mt-5 text-xl font-bold sm:text-2xl">
               Today's Goal
@@ -333,9 +334,7 @@ function Dashboard() {
           {!topicsLoading && topics.length === 0 && (
             <div className="mt-7 rounded-2xl border border-white/10 bg-white/5 p-10 text-center">
 
-              <div className="text-5xl">
-                📚
-              </div>
+              <div className="flex justify-center text-emerald-300"><IconGlyph name="book" size={38} /></div>
 
               <h3 className="mt-4 text-xl font-bold">
                 No topics available
@@ -366,8 +365,8 @@ function Dashboard() {
                     className="block h-full group rounded-2xl border border-white/10 bg-white/5 p-5 text-left transition duration-300 hover:border-indigo-500/50 hover:bg-white/10 sm:p-6"
                     style={{ transformStyle: "preserve-3d" }}
                   >
-                    <motion.div className="text-4xl" style={{ transform: "translateZ(30px)" }}>
-                      {topic.icon}
+                    <motion.div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/15 text-indigo-300" style={{ transform: "translateZ(30px)" }}>
+                      <IconGlyph name={topic.icon} size={24} />
                     </motion.div>
 
                     <motion.h3 className="mt-5 text-xl font-bold transition group-hover:text-indigo-400" style={{ transform: "translateZ(20px)" }}>
@@ -382,8 +381,8 @@ function Dashboard() {
                       <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300">
                         {topic.difficulty}
                       </span>
-                      <span className="text-sm font-semibold text-indigo-400">
-                        Start →
+                      <span className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-400">
+                        Start <ArrowRight size={15} aria-hidden="true" />
                       </span>
                     </div>
                   </Link>

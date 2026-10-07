@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Check, CheckCheck, MessageCircle, Send, Users } from "lucide-react";
+import { ArrowLeft, Check, CheckCheck, MessageCircle, Send, Users, Volume2, VolumeX } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/authContext";
 import api from "../services/api";
+import { isSoundEnabled, toggleSound, playMessageReceived, playMessageSent } from "../utils/soundEffects";
 
 const formatTime = (date) => new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" }).format(new Date(date));
 const presenceLabel = (lastSeenAt) => {
@@ -33,7 +34,15 @@ function Chat() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [soundActive, setSoundActive] = useState(isSoundEnabled());
   const messageEndRef = useRef(null);
+  const previousMessagesCountRef = useRef(null);
+
+  useEffect(() => {
+    const handleSoundToggle = (e) => setSoundActive(e.detail?.enabled ?? isSoundEnabled());
+    window.addEventListener("mathmind:sound-toggle", handleSoundToggle);
+    return () => window.removeEventListener("mathmind:sound-toggle", handleSoundToggle);
+  }, []);
 
   useEffect(() => {
     api.patch("/notifications/read-all").catch(() => {});
@@ -84,6 +93,19 @@ function Chat() {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation?.messages?.length]);
 
+  // Sound alert when receiving message from the other person
+  useEffect(() => {
+    const messages = conversation?.messages || [];
+    if (previousMessagesCountRef.current !== null && messages.length > previousMessagesCountRef.current) {
+      const newest = messages[messages.length - 1];
+      const isMine = String(newest?.sender) === String(user?.id || user?._id);
+      if (!isMine) {
+        playMessageReceived();
+      }
+    }
+    previousMessagesCountRef.current = messages.length;
+  }, [conversation?.messages, user]);
+
   const selectConversation = (nextId) => {
     setSelectedId(nextId);
     setConversation(null);
@@ -101,6 +123,7 @@ function Chat() {
       const { data } = await api.post(endpoint, { body: trimmedBody });
       setConversation(data.conversation);
       setBody("");
+      playMessageSent();
       if (isAdmin) setConversations((current) => current.map((item) => item._id === data.conversation._id ? data.conversation : item));
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Could not send message.");
@@ -127,7 +150,31 @@ function Chat() {
             <h1 className="mt-2 text-3xl font-black sm:text-4xl">Math help, human to human.</h1>
             <p className="mt-2 max-w-2xl text-slate-400">Ask a question, share where you are stuck, and keep the conversation with your teacher in one place.</p>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-200"><span className="h-2 w-2 rounded-full bg-emerald-300" /> Live support</div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                const next = toggleSound();
+                setSoundActive(next);
+              }}
+              title={soundActive ? "Message sounds enabled (Click to test or mute)" : "Message sounds muted (Click to enable)"}
+              className={`flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold transition ${
+                soundActive
+                  ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.2)]"
+                  : "border-white/10 bg-white/5 text-slate-400 opacity-80"
+              }`}
+            >
+              {soundActive ? <Volume2 size={14} /> : <VolumeX size={14} />}
+              {soundActive ? "Sound Alert On" : "Sound Muted"}
+            </button>
+            <div className="flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-200">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-300" />
+              </span>
+              Live support
+            </div>
+          </div>
         </div>
 
         {error && <p className="mb-4 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p>}

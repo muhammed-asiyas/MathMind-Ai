@@ -4,7 +4,6 @@ import api from "../services/api";
 import Navbar from "../components/Navbar";
 import LoadingSpinner from "../components/LoadingSpinner";
 import {
-  BookOpen,
   Clock,
   Sparkles,
   Trophy,
@@ -14,14 +13,16 @@ import {
   ChevronRight,
   Zap,
   CheckCircle2,
+  ArrowRight,
 } from "lucide-react";
+import IconGlyph from "../components/IconGlyph";
 
 // Robust fallback data in case database initial request is delayed
 const defaultTopicStages = [
   {
     id: "algebra",
     title: "Algebra & Equations",
-    icon: "🧮",
+    icon: "algebra",
     description: "Master variables, expressions, and equation solving.",
     difficulty: "Beginner",
     lessons: [
@@ -54,7 +55,7 @@ const defaultTopicStages = [
   {
     id: "geometry",
     title: "Geometry & Shapes",
-    icon: "📐",
+    icon: "geometry",
     description: "Explore angles, area, perimeter, and space measurement.",
     difficulty: "Intermediate",
     lessons: [
@@ -87,7 +88,7 @@ const defaultTopicStages = [
   {
     id: "fractions",
     title: "Fractions & Decimals",
-    icon: "🍕",
+    icon: "fractions",
     description: "Build confidence comparing, adding, and multiplying fractions.",
     difficulty: "Beginner",
     lessons: [
@@ -120,7 +121,7 @@ const defaultTopicStages = [
   {
     id: "arithmetic",
     title: "Essential Arithmetic",
-    icon: "🔢",
+    icon: "arithmetic",
     description: "Strengthen number sense with place value, factors, and operations.",
     difficulty: "Beginner",
     lessons: [
@@ -195,7 +196,7 @@ function Lessons() {
         return {
           id: t._id,
           title: t.title,
-          icon: t.icon || "📚",
+          icon: t.icon || "book",
           description: t.description,
           difficulty: t.difficulty || "Beginner",
           lessons: topicLessons.length > 0 ? topicLessons : [
@@ -230,8 +231,6 @@ function Lessons() {
     ? groupedStages.filter((stage) => stage.id === selectedTopicId)
     : groupedStages;
 
-  const totalLessonsCount = activeStages.reduce((acc, stage) => acc + stage.lessons.length, 0);
-
   return (
     <div className="lessons-page min-h-screen bg-slate-950 text-white">
       {/* Navbar */}
@@ -257,11 +256,11 @@ function Lessons() {
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1.5 self-start md:self-auto">
+          <div className="grid w-full grid-cols-2 gap-1.5 self-start rounded-2xl border border-white/10 bg-white/5 p-1.5 sm:w-auto md:w-72 md:self-auto">
             <button
               type="button"
               onClick={() => setViewMode("roadmap")}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
+              className={`flex h-10 w-full min-w-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-2.5 text-xs font-bold transition sm:px-4 ${
                 viewMode === "roadmap"
                   ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/25"
                   : "text-slate-400 hover:text-white"
@@ -274,7 +273,7 @@ function Lessons() {
             <button
               type="button"
               onClick={() => setViewMode("grid")}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
+              className={`flex h-10 w-full min-w-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-2.5 text-xs font-bold transition sm:px-4 ${
                 viewMode === "grid"
                   ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/25"
                   : "text-slate-400 hover:text-white"
@@ -311,7 +310,7 @@ function Lessons() {
                   : "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
               }`}
             >
-              <span>{stage.icon}</span>
+              <IconGlyph name={stage.icon} size={17} />
               <span>{stage.title}</span>
             </button>
           ))}
@@ -330,8 +329,8 @@ function Lessons() {
                 {/* Stage Header Banner */}
                 <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-indigo-500/20 bg-indigo-500/10 p-6 sm:p-8 backdrop-blur">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/20 text-3xl shadow-inner">
-                      {stage.icon}
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-300 shadow-inner">
+                      <IconGlyph name={stage.icon} size={28} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-300">
@@ -353,7 +352,7 @@ function Lessons() {
                     className="flex items-center gap-2 rounded-xl bg-indigo-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition hover:bg-indigo-400 active:scale-[0.98]"
                   >
                     <Zap size={16} />
-                    Start Stage Practice →
+                    Start Stage Practice <ArrowRight size={16} aria-hidden="true" />
                   </Link>
                 </div>
 
@@ -424,15 +423,15 @@ function Lessons() {
                             Stage Milestone
                           </p>
                           <p className="text-sm font-bold text-white">
-                            Complete {stage.title} Practice to Earn +50 XP 🏆
+                            <span className="inline-flex items-center gap-1.5">Complete {stage.title} Practice to Earn +50 XP <Trophy size={15} aria-hidden="true" /></span>
                           </p>
                         </div>
 
                         <Link
                           to={`/topics/${stage.id}`}
-                          className="rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-amber-300"
+                          className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-amber-300"
                         >
-                          Take Topic Challenge →
+                          Take Topic Challenge <ArrowRight size={14} aria-hidden="true" />
                         </Link>
                       </div>
                     </div>
@@ -455,8 +454,8 @@ function Lessons() {
                 >
                   <div>
                     <div className="flex items-center justify-between">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-sm font-bold text-indigo-300">
-                        {stage.icon}
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-300">
+                        <IconGlyph name={stage.icon} size={21} />
                       </div>
 
                       <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-indigo-300 border border-white/10">
@@ -484,8 +483,8 @@ function Lessons() {
                       </span>
                     </div>
 
-                    <span className="text-sm font-bold text-indigo-400 group-hover:translate-x-1 transition-transform">
-                      Start →
+                    <span className="inline-flex items-center gap-1 text-sm font-bold text-indigo-400 group-hover:translate-x-1 transition-transform">
+                      Start <ArrowRight size={15} aria-hidden="true" />
                     </span>
                   </div>
                 </Link>

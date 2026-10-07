@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 import api from "../services/api";
 
 function Register() {
@@ -57,32 +58,32 @@ function Register() {
         <div className="grid w-full overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl md:grid-cols-2">
 
           {/* Left */}
-          <div className="hidden bg-indigo-600 p-12 md:flex md:flex-col md:justify-between">
+          <div className="signup-hero hidden bg-indigo-600 p-12 md:flex md:flex-col md:justify-between">
 
             <div>
               <Link
                 to="/"
-                className="text-2xl font-black"
+                className="signup-hero-brand text-2xl font-black"
               >
                 MathMind AI
               </Link>
 
-              <h1 className="mt-16 text-5xl font-black leading-tight">
+              <h1 className="signup-hero-title mt-16 text-5xl font-black leading-tight">
                 Your journey to mathematical confidence starts here.
               </h1>
 
-              <p className="mt-6 text-lg leading-8 text-indigo-100">
+              <p className="signup-hero-copy mt-6 text-lg leading-8 text-indigo-100">
                 Learn mathematics with AI-powered explanations,
                 personalized practice, and progress tracking.
               </p>
             </div>
 
-            <div className="rounded-2xl bg-white/10 p-5">
-              <p className="font-semibold">
-                🚀 Learn smarter every day
+            <div className="signup-highlight rounded-2xl bg-white/10 p-5">
+              <p className="signup-highlight-title font-semibold">
+                <span className="inline-flex items-center gap-2"><Sparkles size={17} aria-hidden="true" />Learn smarter every day</span>
               </p>
 
-              <p className="mt-2 text-sm text-indigo-100">
+              <p className="signup-highlight-copy mt-2 text-sm text-indigo-100">
                 Build your skills one problem at a time.
               </p>
             </div>
@@ -186,7 +187,7 @@ function Register() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-indigo-500 py-3.5 font-semibold transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="signup-submit w-full rounded-xl py-3.5 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading
                   ? "Creating Account..."

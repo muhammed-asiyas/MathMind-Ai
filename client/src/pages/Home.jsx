@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { ArrowRight, Check, Flame, MessageCircle, Sparkles, Volume2 } from "lucide-react";
+import mathDiscussionImage from "../assets/math-discussion.jpg";
+import learningInPracticeImage from "../assets/learning-in-practice.jpg";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import IconGlyph from "../components/IconGlyph";
+import FloatingMathCanvas from "../components/FloatingMathCanvas";
 import { useAuth } from "../context/authContext";
+import { playNotificationChime } from "../utils/soundEffects";
 import api from "../services/api";
 
 function Home() {
@@ -13,10 +20,10 @@ function Home() {
 
   // 3D Scroll Effects
   const { scrollY } = useScroll();
-  const heroScale = useTransform(scrollY, [0, 800], [1, 0.8]);
-  const heroRotateX = useTransform(scrollY, [0, 800], [0, 25]);
-  const heroOpacity = useTransform(scrollY, [0, 600], [1, 0]);
-  const heroY = useTransform(scrollY, [0, 800], [0, 200]);
+  const heroScale = useTransform(scrollY, [0, 900], [1, 0.96]);
+  const heroRotateX = useTransform(scrollY, [0, 900], [0, 8]);
+  const heroOpacity = useTransform(scrollY, [0, 850], [1, 0]);
+  const heroY = useTransform(scrollY, [0, 900], [0, 72]);
 
   useEffect(() => {
     if (!user) return;
@@ -72,7 +79,7 @@ function Home() {
     : "0 / 5";
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div id="top" className="min-h-screen bg-slate-950 text-white">
 
       {/* Navbar */}
       <Navbar />
@@ -113,12 +120,24 @@ function Home() {
         >
           <div className="pointer-events-none absolute -left-24 top-20 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
           <div className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
+          <FloatingMathCanvas />
 
           <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20 lg:py-28">
           <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-4 py-2 text-sm text-indigo-300">
-              <motion.span animate={{ rotate: [0, 12, -12, 0] }} transition={{ duration: 2.5, repeat: Infinity }}>✦</motion.span>
-              AI-powered mathematics learning
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-4 py-2 text-sm text-indigo-300">
+                <motion.span animate={{ rotate: [0, 12, -12, 0] }} transition={{ duration: 2.5, repeat: Infinity }}><Sparkles size={15} aria-hidden="true" /></motion.span>
+                AI-powered mathematics learning
+              </div>
+              <button
+                type="button"
+                onClick={playNotificationChime}
+                title="Click to test chat notification chime sound"
+                className="group inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-400/20 active:scale-95 shadow-[0_0_15px_rgba(52,211,153,0.15)]"
+              >
+                <Volume2 size={13} className="text-emerald-400 transition group-hover:scale-110" />
+                <span>Hear notification chime</span>
+              </button>
             </div>
 
             <h1 className="max-w-2xl text-5xl font-black leading-[1.04] tracking-tight sm:text-6xl md:text-7xl">
@@ -133,41 +152,55 @@ function Home() {
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               {user ? (
                 user.role === "admin" ? (
-                  <Link to="/admin" className="rounded-xl bg-indigo-500 px-7 py-3.5 text-center font-semibold shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:bg-indigo-400">Go to Admin Dashboard →</Link>
+                  <Link to="/admin" className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-7 py-3.5 text-center font-semibold shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:bg-indigo-400">Go to Admin Dashboard <ArrowRight size={16} aria-hidden="true" /></Link>
                 ) : (
                   <>
-                    <Link to="/dashboard" className="rounded-xl bg-indigo-500 px-7 py-3.5 text-center font-semibold shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:bg-indigo-400">Go to Dashboard →</Link>
-                    <Link to="/lessons" className="rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 text-center font-semibold transition hover:bg-white/10">Explore Lessons</Link>
+                    <Link to="/dashboard" className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-7 py-3.5 text-center font-semibold shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:bg-indigo-400">Go to Dashboard <ArrowRight size={16} aria-hidden="true" /></Link>
+                    <Link to="/lessons" className="btn-secondary rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 text-center font-semibold transition hover:bg-white/10">Explore Lessons</Link>
                   </>
                 )
               ) : (
                 <>
-                  <Link to="/signup" className="rounded-xl bg-indigo-500 px-7 py-3.5 text-center font-semibold shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:bg-indigo-400">Start Learning →</Link>
-                  <Link to="/login" className="rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 text-center font-semibold transition hover:bg-white/10">I Already Have an Account</Link>
+                  <Link to="/signup" className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-7 py-3.5 text-center font-semibold shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:bg-indigo-400">Start Learning <ArrowRight size={16} aria-hidden="true" /></Link>
+                  <Link to="/login" className="btn-secondary rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 text-center font-semibold transition hover:bg-white/10">I Already Have an Account</Link>
                 </>
               )}
             </div>
 
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
-              <span>✓ Step-by-step help</span>
-              <span>✓ 15 questions per topic</span>
+              <span className="inline-flex items-center gap-1.5"><Check size={15} className="text-emerald-300" aria-hidden="true" />Step-by-step help</span>
+              <span className="inline-flex items-center gap-1.5"><Check size={15} className="text-emerald-300" aria-hidden="true" />15 questions per topic</span>
             </div>
           </motion.div>
 
           <motion.div className="relative mx-auto w-full max-w-xl" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.15 }}>
             <motion.div className="home-progress-card absolute -right-2 top-6 z-10 rounded-2xl border border-emerald-300/20 bg-slate-900/90 px-4 py-3 shadow-xl backdrop-blur sm:-right-8" animate={{ y: [0, -8, 0] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}>
               <p className="home-progress-label text-[10px] font-bold uppercase tracking-wider text-emerald-300">Today&apos;s progress</p>
-              <p className="home-progress-value mt-1 text-lg font-black text-white">{solvedText} solved <span className="text-emerald-300">✓</span></p>
+              <p className="home-progress-value mt-1 flex items-center gap-1.5 text-lg font-black text-white">{solvedText} solved <Check size={17} className="text-emerald-300" aria-hidden="true" /></p>
             </motion.div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-white/5 p-2 shadow-2xl shadow-indigo-950/50 backdrop-blur sm:p-4">
+            <div className="relative mb-4 aspect-[16/9] overflow-hidden rounded-[1.5rem] border border-white/10 shadow-xl">
+              <img
+                src={mathDiscussionImage}
+                alt="A primary-school teacher explains a geometry lesson to students in a bright classroom"
+                className="h-full w-full object-cover object-center"
+                fetchPriority="high"
+                decoding="async"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent" />
+              <p className="absolute bottom-0 left-0 p-4 text-sm font-semibold text-white sm:p-5 sm:text-base">
+                Every good question moves learning forward.
+              </p>
+            </div>
+
+            <div className="cursor-tilt rounded-[2rem] border border-white/10 bg-white/5 p-2 shadow-2xl shadow-indigo-950/50 backdrop-blur sm:p-4">
               <div className="rounded-[1.5rem] border border-white/10 bg-slate-900 p-5 sm:p-7">
                 <div className="flex items-center justify-between border-b border-white/10 pb-5">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-300">Live practice</p>
                     <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">Let&apos;s crack this together</h2>
                   </div>
-                  <motion.span className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-500/15 text-xl" animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }}>✦</motion.span>
+                  <motion.span className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-500/15 text-indigo-300" animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }}><Sparkles size={20} aria-hidden="true" /></motion.span>
                 </div>
 
                 <div className="mt-6 rounded-2xl bg-indigo-500/10 p-5">
@@ -192,7 +225,7 @@ function Home() {
 
             <motion.div className="absolute -bottom-5 -left-3 rounded-2xl border border-amber-300/20 bg-slate-900 px-4 py-3 shadow-xl sm:-left-8" animate={{ y: [0, 7, 0] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}>
               <p className="text-xs text-slate-400">Learning streak</p>
-              <p className="mt-1 font-black text-amber-300">{streakText} 🔥</p>
+              <p className="mt-1 flex items-center gap-1.5 font-black text-amber-300"><Flame size={16} aria-hidden="true" />{streakText}</p>
             </motion.div>
           </motion.div>
         </div>
@@ -202,7 +235,7 @@ function Home() {
       {/* Features */}
       <section
         id="features"
-        className="bg-slate-900 px-6 py-24"
+        className="landing-features px-6 py-24"
       >
         <div className="mx-auto max-w-7xl">
 
@@ -221,26 +254,46 @@ function Home() {
             </p>
           </div>
 
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.65 }}
+              className="relative mt-10 aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-emerald-950/20 sm:aspect-[2.4/1]"
+            >
+              <img
+                src={learningInPracticeImage}
+                alt="A teacher leads an interactive classroom lesson as primary-school students take part"
+                className="h-full w-full object-cover object-center"
+                loading="lazy"
+                decoding="async"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-transparent to-transparent" />
+              <p className="absolute bottom-0 left-0 p-5 text-base font-semibold text-white sm:p-7 sm:text-xl">
+                Better understanding starts with working it out together.
+              </p>
+            </motion.div>
+
           <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4" style={{ perspective: "1200px" }}>
 
             {[
               {
-                icon: "🤖",
+                icon: "ai",
                 title: "AI Math Tutor",
                 text: "Ask questions and receive step-by-step explanations.",
               },
               {
-                icon: "📚",
+                icon: "lessons",
                 title: "Smart Lessons",
                 text: "Learn mathematics through structured lessons.",
               },
               {
-                icon: "🎯",
+                icon: "practice",
                 title: "Practice",
                 text: "Improve your skills with personalized questions.",
               },
               {
-                icon: "📈",
+                icon: "progress",
                 title: "Track Progress",
                 text: "Monitor XP, levels, scores, and learning progress.",
               },
@@ -255,8 +308,8 @@ function Home() {
                 className="rounded-2xl border border-white/10 bg-white/5 p-7 hover:bg-white/10 hover:shadow-[0_20px_40px_-15px_rgba(99,102,241,0.3)] transition-colors relative"
                 style={{ transformStyle: "preserve-3d" }}
               >
-                <motion.div className="text-4xl" style={{ transform: "translateZ(30px)" }}>
-                  {feature.icon}
+                <motion.div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-300" style={{ transform: "translateZ(30px)" }}>
+                  <IconGlyph name={feature.icon} size={25} />
                 </motion.div>
 
                 <motion.h3 className="mt-5 text-xl font-bold" style={{ transform: "translateZ(20px)" }}>
@@ -308,16 +361,16 @@ function Home() {
             user.role === "admin" ? (
               <Link
                 to="/admin"
-                className="mt-8 inline-block rounded-xl bg-indigo-500 px-8 py-4 font-semibold transition hover:bg-indigo-400"
+                className="mt-8 inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-8 py-4 font-semibold transition hover:bg-indigo-400"
               >
-                Go to Admin Dashboard →
+                Go to Admin Dashboard <ArrowRight size={16} aria-hidden="true" />
               </Link>
             ) : (
               <Link
                 to="/dashboard"
-                className="mt-8 inline-block rounded-xl bg-indigo-500 px-8 py-4 font-semibold transition hover:bg-indigo-400"
+                className="mt-8 inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-8 py-4 font-semibold transition hover:bg-indigo-400"
               >
-                Go to Your Dashboard →
+                Go to Your Dashboard <ArrowRight size={16} aria-hidden="true" />
               </Link>
             )
           ) : (
@@ -332,18 +385,7 @@ function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/10 px-6 py-8">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-4 text-sm text-slate-500 md:flex-row">
-          <p>
-            © 2026 MathMind AI. All rights reserved.
-          </p>
-
-          <p>
-            Learn smarter. Practice better. 🚀
-          </p>
-        </div>
-      </footer>
+      <Footer />
 
     </div>
   );

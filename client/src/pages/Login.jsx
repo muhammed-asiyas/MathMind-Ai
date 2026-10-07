@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 import api from "../services/api";
 import { useAuth } from "../context/authContext";
 
@@ -73,7 +74,7 @@ function Login() {
           </Link>
 
           <h1 className="mt-8 text-center text-3xl font-bold">
-            Welcome back 👋
+            <span className="inline-flex items-center justify-center gap-2">Welcome back <Sparkles size={20} className="text-emerald-300" aria-hidden="true" /></span>
           </h1>
 
           <p className="mt-2 text-center text-slate-400">

@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
+  Activity,
   CheckCircle2,
   LayoutDashboard,
   Plus,
   ShieldCheck,
+  TriangleAlert,
   Trash2,
   UserMinus,
   UserPlus,
@@ -18,9 +20,10 @@ import {
 import Navbar from "../components/Navbar";
 import Hero3DWrapper from "../components/Hero3DWrapper";
 import LoadingSpinner from "../components/LoadingSpinner";
+import IconGlyph from "../components/IconGlyph";
 import api from "../services/api";
 
-const emptyTopic = { title: "", description: "", icon: "📚", difficulty: "Beginner", order: "" };
+const emptyTopic = { title: "", description: "", icon: "book", difficulty: "Beginner", order: "" };
 const emptyLesson = { topic: "", title: "", questionSetKey: "", description: "", videoUrl: "", difficulty: "Beginner", order: "1", duration: "10" };
 const emptyStudent = { firstName: "", lastName: "", email: "", password: "" };
 
@@ -60,28 +63,26 @@ function Admin() {
   const [error, setError] = useState("");
 
   // ── Helpers ─────────────────────────────────────────────────────────────
-  const clearFeedback = () => { setMessage(""); setError(""); };
+  const clearFeedback = useCallback(() => { setMessage(""); setError(""); }, []);
   const updateForm = (setter) => (e) => setter((cur) => ({ ...cur, [e.target.name]: e.target.value }));
 
   // ── Data loaders ─────────────────────────────────────────────────────────
-  const loadOverview = async () => {
-    setLoading(true);
+  const loadOverview = useCallback(async () => {
     clearFeedback();
     try {
       const { data } = await api.get("/admin/overview");
       setOverview(data);
-      if (!lessonForm.topic && data.topics?.[0]?._id) {
-        setLessonForm((cur) => ({ ...cur, topic: data.topics[0]._id }));
-      }
+      setLessonForm((current) => current.topic || !data.topics?.[0]?._id
+        ? current
+        : { ...current, topic: data.topics[0]._id });
     } catch (err) {
       setError(err.response?.data?.message || "Unable to load admin data.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [clearFeedback]);
 
-  const loadAllStudents = async () => {
-    setStudentsLoading(true);
+  const loadAllStudents = useCallback(async () => {
     try {
       const { data } = await api.get("/admin/students");
       setAllStudents(data.students || []);
@@ -90,10 +91,60 @@ function Admin() {
     } finally {
       setStudentsLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { loadOverview(); }, []);
-  useEffect(() => { if (activeSection === "students") loadAllStudents(); }, [activeSection]);
+  useEffect(() => {
+    let active = true;
+    const fetchOverview = async () => {
+      try {
+        const { data } = await api.get("/admin/overview");
+        if (!active) return;
+        setOverview(data);
+        setLessonForm((current) => current.topic || !data.topics?.[0]?._id
+          ? current
+          : { ...current, topic: data.topics[0]._id });
+      } catch (err) {
+        if (active) setError(err.response?.data?.message || "Unable to load admin data.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    void fetchOverview();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (activeSection !== "students") return undefined;
+
+    let active = true;
+    const fetchStudents = async () => {
+      try {
+        const { data } = await api.get("/admin/students");
+        if (active) setAllStudents(data.students || []);
+      } catch (err) {
+        if (active) setError(err.response?.data?.message || "Unable to load student list.");
+      } finally {
+        if (active) setStudentsLoading(false);
+      }
+    };
+
+    void fetchStudents();
+    return () => { active = false; };
+  }, [activeSection]);
+  useEffect(() => {
+    const refreshMetrics = async () => {
+      try {
+        const { data } = await api.get("/admin/overview");
+        setOverview(data);
+      } catch (refreshError) {
+        console.error("Unable to refresh admin overview:", refreshError);
+      }
+    };
+
+    const interval = window.setInterval(refreshMetrics, 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   // ── Topic handlers ───────────────────────────────────────────────────────
   const handleCreateTopic = async (e) => {
@@ -178,6 +229,7 @@ function Admin() {
   // ── Derived lists ─────────────────────────────────────────────────────────
   const metrics = [
     ["Students", overview.metrics.studentCount || 0, Users, "text-cyan-300"],
+    ["Online now", overview.metrics.onlineStudentCount || 0, Activity, "text-emerald-300"],
     ["Topics", overview.metrics.topicCount || 0, LayoutDashboard, "text-indigo-300"],
     ["Lessons", overview.metrics.lessonCount || 0, BookOpen, "text-amber-300"],
     ["Progress records", overview.metrics.progressCount || 0, CheckCircle2, "text-emerald-300"],
@@ -273,7 +325,12 @@ function Admin() {
             <button
               key={key}
               type="button"
-              onClick={() => { setActiveSection(key); clearFeedback(); setConfirmId(null); }}
+              onClick={() => {
+                if (key === "students" && activeSection !== "students") setStudentsLoading(true);
+                setActiveSection(key);
+                clearFeedback();
+                setConfirmId(null);
+              }}
               className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all ${
                 activeSection === key
                   ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/25"
@@ -303,7 +360,7 @@ function Admin() {
           {/* ══════════════ OVERVIEW ══════════════ */}
           {activeSection === "overview" && (
             <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" style={{ perspective: "1000px" }}>
+              <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5" style={{ perspective: "1000px" }}>
                 {metrics.map(([label, value, Icon, color]) => (
                   <motion.div 
                     key={label} 
@@ -312,7 +369,14 @@ function Admin() {
                     className="motion-surface rounded-2xl border border-white/10 bg-white/[0.04] p-5"
                     style={{ transformStyle: "preserve-3d" }}
                   >
-                    <Icon className={color} size={20} style={{ transform: "translateZ(30px)" }} />
+                    <div className="flex items-center justify-between" style={{ transform: "translateZ(30px)" }}>
+                      <Icon className={color} size={20} />
+                      {label === "Online now" && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/15 bg-emerald-300/[0.08] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300" title="Active within the last 90 seconds">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />Live
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-5 text-xs font-bold uppercase tracking-wider text-slate-500" style={{ transform: "translateZ(20px)" }}>{label}</p>
                     <p className="mt-1 text-3xl font-black" style={{ transform: "translateZ(10px)" }}>{loading ? "..." : value}</p>
                   </motion.div>
@@ -355,8 +419,8 @@ function Admin() {
                   <div className="mt-5 space-y-3">
                     {overview.topics.map((topic) => (
                       <div key={topic._id} className="flex items-center justify-between rounded-xl bg-slate-950/35 px-4 py-3">
-                        <span className="flex items-center gap-2 text-sm font-semibold">
-                          <span>{topic.icon}</span>{topic.title}
+                          <span className="flex items-center gap-2 text-sm font-semibold">
+                            <IconGlyph name={topic.icon} size={17} className="text-indigo-300" />{topic.title}
                         </span>
                         <span className="text-xs text-slate-500">
                           {overview.lessons.filter((l) => l.topic?._id === topic._id).length} lessons
@@ -484,7 +548,13 @@ function Admin() {
                     </div>
                     <form onSubmit={handleCreateTopic} className="grid gap-4 md:grid-cols-2">
                       <input required name="title" value={topicForm.title} onChange={updateForm(setTopicForm)} placeholder="Topic title" className="admin-input" id="admin-topic-title" />
-                      <input name="icon" value={topicForm.icon} onChange={updateForm(setTopicForm)} placeholder="Icon (emoji)" className="admin-input" id="admin-topic-icon" />
+                      <select name="icon" value={topicForm.icon} onChange={updateForm(setTopicForm)} className="admin-input" id="admin-topic-icon" aria-label="Topic icon">
+                        <option value="book">Book</option>
+                        <option value="algebra">Algebra</option>
+                        <option value="geometry">Geometry</option>
+                        <option value="fractions">Fractions</option>
+                        <option value="arithmetic">Numbers</option>
+                      </select>
                       <textarea required name="description" value={topicForm.description} onChange={updateForm(setTopicForm)} placeholder="What will students learn?" className="admin-input min-h-24 md:col-span-2" id="admin-topic-desc" />
                       <select name="difficulty" value={topicForm.difficulty} onChange={updateForm(setTopicForm)} className="admin-input" id="admin-topic-difficulty">
                         <option>Beginner</option>
@@ -517,7 +587,7 @@ function Admin() {
                       <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-bold text-slate-300">{overview.topics.length} topics</span>
                     </div>
                     <div className="mb-4 rounded-xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-xs text-amber-200">
-                      ⚠️ Removing a topic will also delete all its lessons and student progress for that topic.
+                      <span className="flex items-start gap-2"><TriangleAlert size={15} className="mt-0.5 shrink-0" aria-hidden="true" />Removing a topic will also delete all its lessons and student progress for that topic.</span>
                     </div>
                     <input type="text" placeholder="Search topics…" value={topicSearch} onChange={(e) => setTopicSearch(e.target.value)} className="admin-input w-full mb-4" id="admin-topic-search" />
                     <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">

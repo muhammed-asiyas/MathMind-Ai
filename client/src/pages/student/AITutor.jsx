@@ -14,11 +14,13 @@ import {
 	PanelLeft,
 	RotateCcw,
 	Sparkles,
+	Volume2,
 	WandSparkles,
 } from "lucide-react";
 import api from "../../services/api";
 import Navbar from "../../components/Navbar";
 import { useAuth } from "../../context/authContext";
+import { playAiResponse, playMessageSent } from "../../utils/soundEffects";
 
 const starterPrompts = [
 	{ label: "Solve an equation", prompt: "Can you solve 3x + 7 = 22 and explain every step?", icon: Calculator },
@@ -52,6 +54,7 @@ function AITutor() {
 		setInput("");
 		setMessages((current) => [...current, { role: "user", content: trimmedQuestion }]);
 		setIsThinking(true);
+		playMessageSent();
 
 		try {
 			const response = await api.post("/ai/ask", { question: trimmedQuestion });
@@ -61,6 +64,7 @@ function AITutor() {
 				steps: response.data.steps || [],
 				alternatives: response.data.alternatives || [],
 			}]);
+			playAiResponse();
 		} catch (error) {
 			setMessages((current) => [...current, {
 				role: "assistant",

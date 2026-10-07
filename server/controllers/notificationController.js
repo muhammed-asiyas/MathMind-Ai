@@ -1,10 +1,23 @@
 const Notification = require("../models/Notification");
+const User = require("../models/User");
 
 const getNotifications = async (req, res) => {
   try {
+    const now = new Date();
+    const presenceRefreshThreshold = new Date(now.getTime() - 30 * 1000);
     const [notifications, unreadCount] = await Promise.all([
       Notification.find({ recipient: req.user.userId }).sort({ createdAt: -1 }).limit(20),
       Notification.countDocuments({ recipient: req.user.userId, read: false }),
+      User.updateOne(
+        {
+          _id: req.user.userId,
+          $or: [
+            { lastSeenAt: null },
+            { lastSeenAt: { $lt: presenceRefreshThreshold } },
+          ],
+        },
+        { $set: { lastSeenAt: now } }
+      ),
     ]);
     return res.status(200).json({ success: true, notifications, unreadCount });
   } catch (error) {
