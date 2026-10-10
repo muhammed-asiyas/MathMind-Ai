@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Check, Flame, MessageCircle, Sparkles, Volume2 } from "lucide-react";
+import { ArrowRight, Check, Flame, Sparkles, Volume2 } from "lucide-react";
 import mathDiscussionImage from "../assets/math-discussion.jpg";
 import learningInPracticeImage from "../assets/learning-in-practice.jpg";
 import Navbar from "../components/Navbar";
@@ -122,7 +122,7 @@ function Home() {
           <div className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
           <FloatingMathCanvas />
 
-          <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20 lg:py-28">
+          <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-14 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20 lg:py-28">
           <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
             <div className="mb-6 flex flex-wrap items-center gap-3">
               <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-4 py-2 text-sm text-indigo-300">
@@ -235,9 +235,10 @@ function Home() {
       {/* Features */}
       <section
         id="features"
-        className="landing-features px-6 py-24"
+        className="landing-features relative isolate overflow-hidden px-6 py-24"
       >
-        <div className="mx-auto max-w-7xl">
+        <FloatingMathCanvas />
+        <div className="relative z-10 mx-auto max-w-7xl">
 
           <div className="mx-auto max-w-2xl text-center">
             <p className="font-semibold text-indigo-400">
@@ -329,10 +330,11 @@ function Home() {
       {/* About */}
       <section
         id="about"
-        className="px-6 py-24 relative"
+        className="relative isolate overflow-hidden px-6 py-24"
         style={{ perspective: "1000px" }}
       >
-        <div className="mx-auto max-w-4xl text-center">
+        <FloatingMathCanvas />
+        <div className="relative z-10 mx-auto max-w-4xl text-center">
 
           <motion.h2 
             initial={{ opacity: 0, z: -100, rotateX: 20 }}

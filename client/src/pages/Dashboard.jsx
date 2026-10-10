@@ -24,12 +24,25 @@ function Dashboard() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [streakPopupDismissed, setStreakPopupDismissed] = useState(false);
   const userKey = user?.id || user?._id || user?.email;
-  const streakPopupKey = userKey ? `mathora-streak-popup-${userKey}` : "";
+  const streakPopupKey = userKey ? `mathmind-streak-popup-${userKey}` : "";
+  const legacyStreakPopupKey = userKey ? `mathora-streak-popup-${userKey}` : "";
+  const savedStreakPopupDate = streakPopupKey
+    ? localStorage.getItem(streakPopupKey) || localStorage.getItem(legacyStreakPopupKey)
+    : null;
   const today = new Date().toISOString().slice(0, 10);
   const showLoginStreak = !streakPopupDismissed && (
     Boolean(location.state?.showLoginStreak)
-    || Boolean(streakPopupKey && localStorage.getItem(streakPopupKey) !== today)
+    || Boolean(streakPopupKey && savedStreakPopupDate !== today)
   );
+
+  useEffect(() => {
+    if (streakPopupKey && !localStorage.getItem(streakPopupKey)) {
+      const legacyPopupDate = localStorage.getItem(legacyStreakPopupKey);
+      if (legacyPopupDate) {
+        localStorage.setItem(streakPopupKey, legacyPopupDate);
+      }
+    }
+  }, [legacyStreakPopupKey, streakPopupKey]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
