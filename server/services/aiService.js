@@ -251,6 +251,49 @@ const askWithProvider = async (question) => {
   return { answer: String(result.answer), steps: Array.isArray(result.steps) ? result.steps.slice(0, 4).map(String) : [], alternatives: Array.isArray(result.alternatives) ? result.alternatives.slice(0, 2).map((alternative) => ({ title: String(alternative.title || "Another method"), steps: Array.isArray(alternative.steps) ? alternative.steps.slice(0, 4).map(String) : [] })) : [] };
 };
 
+const recognizeHandwriting = async (imageDataUrl) => {
+  if (!process.env.OPENAI_API_KEY) {
+    const error = new Error("Handwriting recognition is not configured. Please type your answer instead.");
+    error.statusCode = 503;
+    throw error;
+  }
+
+  const response = await fetch(process.env.AI_API_URL || "https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: process.env.AI_VISION_MODEL || process.env.AI_MODEL || "gpt-4o-mini",
+      temperature: 0,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: "Transcribe the student's handwritten math from the image. Return only JSON with a recognizedText string. If the work shows steps, return only the student's clearly marked final answer; otherwise transcribe the visible math exactly. Do not solve or guess. Use an empty string if no answer can be read.",
+        },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Read the handwritten final answer in this image." },
+            { type: "image_url", image_url: { url: imageDataUrl, detail: "high" } },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) throw new Error(`AI provider returned ${response.status} for handwriting recognition`);
+  const payload = await response.json();
+  const content = payload.choices?.[0]?.message?.content;
+  if (typeof content !== "string" || !content.trim()) throw new Error("AI provider returned an empty handwriting transcription");
+  const parsedContent = content.replace(/^```(?:json)?\s*|\s*```$/gi, "").trim();
+  const result = JSON.parse(parsedContent);
+  if (typeof result.recognizedText !== "string") throw new Error("AI provider returned an invalid handwriting transcription");
+  return { recognizedText: result.recognizedText.trim().slice(0, 200) };
+};
+
 const askTutor = async (question) => {
   if (process.env.OPENAI_API_KEY) {
     try {
@@ -262,4 +305,4 @@ const askTutor = async (question) => {
   return solveMathQuestion(question);
 };
 
-module.exports = { askTutor };
+module.exports = { askTutor, recognizeHandwriting };

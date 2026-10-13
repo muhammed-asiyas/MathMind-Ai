@@ -1401,6 +1401,29 @@ html[data-theme="light"] .lessons-page .lessons-progress-card {
   background-color: #065f46;
 }
 
+.topic-learning-card {
+  border-color: var(--surface-border);
+  background-color: color-mix(in srgb, var(--surface) 90%, var(--accent));
+}
+
+.topic-learning-card h2,
+.topic-learning-card p {
+  color: var(--content-primary);
+}
+
+.topic-learning-card > div > div:first-child p {
+  color: var(--content-secondary);
+}
+
+.topic-worked-example {
+  border-color: var(--surface-border);
+  background-color: var(--canvas-subtle);
+}
+
+.topic-worked-example p {
+  color: var(--content-primary);
+}
+
 html[data-theme="light"] .topic-details-page :is(
   .bg-slate-950\/45,
   .bg-slate-950\/70,
@@ -1422,11 +1445,6 @@ html[data-theme="light"] .topic-details-page :is(
 .practice-answer-panel {
   border-color: var(--surface-border);
   background-color: color-mix(in srgb, var(--canvas-subtle) 76%, var(--surface));
-}
-
-.practice-answer-stage {
-  border-color: var(--surface-border);
-  background-color: var(--canvas);
 }
 
 .practice-answer-input {

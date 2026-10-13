@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Clock3, Eraser, Keyboard, PenLine, PlayCircle, Sparkles, CheckCircle2 } from "lucide-react";
@@ -575,10 +575,80 @@ function QuestionAnimation({ question, questionIndex, topicType }) {
   );
 }
 
-function HandwritingPad({ disabled }) {
+function createHandwritingSnapshot(strokes) {
+  return new Promise((resolve, reject) => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="360" viewBox="0 0 1000 360"><rect width="1000" height="360" fill="#ffffff"/>${strokes.map((stroke) => `<path d="${stroke}" fill="none" stroke="#111827" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`).join("")}</svg>`;
+    const image = new Image();
+    const imageUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+
+    image.onload = () => {
+      URL.revokeObjectURL(imageUrl);
+      const canvas = document.createElement("canvas");
+      canvas.width = 600;
+      canvas.height = 216;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        reject(new Error("Could not prepare the handwriting image."));
+        return;
+      }
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/png"));
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(imageUrl);
+      reject(new Error("Could not prepare the handwriting image."));
+    };
+
+    image.src = imageUrl;
+  });
+}
+
+function HandwritingPad({ disabled, active, onRecognized }) {
   const [strokes, setStrokes] = useState([]);
   const [activeStroke, setActiveStroke] = useState("");
+  const [recognitionStatus, setRecognitionStatus] = useState({ state: "idle", message: "" });
   const activeStrokeRef = useRef("");
+  const recognitionRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (!active || disabled || strokes.length === 0) return undefined;
+
+    const requestId = ++recognitionRequestRef.current;
+    const timer = setTimeout(async () => {
+      if (recognitionRequestRef.current !== requestId || activeStrokeRef.current) return;
+      setRecognitionStatus({ state: "recognizing", message: "Recognizing handwriting..." });
+      try {
+        const imageDataUrl = await createHandwritingSnapshot(strokes);
+        if (recognitionRequestRef.current !== requestId) return;
+        const response = await api.post(
+          "/ai/recognize-handwriting",
+          { imageDataUrl },
+          { timeout: 30000 }
+        );
+        if (recognitionRequestRef.current !== requestId) return;
+
+        const recognizedText = response.data.recognizedText.trim();
+        if (recognizedText) {
+          onRecognized(recognizedText);
+          setRecognitionStatus({ state: "recognized", message: "Handwriting added to your answer. Review it before checking." });
+        } else {
+          setRecognitionStatus({ state: "unreadable", message: "No clear final answer found. Try writing it more clearly." });
+        }
+      } catch (error) {
+        if (recognitionRequestRef.current !== requestId) return;
+        setRecognitionStatus({
+          state: "error",
+          message: error.response?.data?.message || "Could not recognize handwriting. Please try again.",
+        });
+      }
+    }, 900);
+
+    return () => {
+      clearTimeout(timer);
+      recognitionRequestRef.current += 1;
+    };
+  }, [active, disabled, strokes, onRecognized]);
 
   const getPoint = (event) => {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -590,6 +660,8 @@ function HandwritingPad({ disabled }) {
   const startStroke = (event) => {
     if (disabled) return;
     event.preventDefault();
+    recognitionRequestRef.current += 1;
+    setRecognitionStatus({ state: "idle", message: "" });
     event.currentTarget.setPointerCapture(event.pointerId);
     activeStrokeRef.current = `M ${getPoint(event)}`;
     setActiveStroke(activeStrokeRef.current);
@@ -613,6 +685,7 @@ function HandwritingPad({ disabled }) {
     activeStrokeRef.current = "";
     setActiveStroke("");
     setStrokes([]);
+    setRecognitionStatus({ state: "idle", message: "" });
   };
 
   return (
@@ -620,7 +693,16 @@ function HandwritingPad({ disabled }) {
       <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
         <div>
           <p className="text-sm font-bold">Working space</p>
-          <p className="text-xs text-slate-500">Write out your steps with a mouse, stylus, or finger.</p>
+          <p className="text-xs text-slate-500">Write with a mouse, stylus, or finger. After you pause, AI reads your writing and adds the final answer below.</p>
+          {recognitionStatus.message && (
+            <p
+              className={`mt-1 text-xs ${recognitionStatus.state === "error" || recognitionStatus.state === "unreadable" ? "text-amber-400" : "text-emerald-400"}`}
+              role="status"
+              aria-live="polite"
+            >
+              {recognitionStatus.message}
+            </p>
+          )}
         </div>
         <button type="button" onClick={clearPad} disabled={disabled || strokes.length === 0} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold text-slate-400 transition hover:text-emerald-400 disabled:cursor-not-allowed disabled:opacity-40">
           <Eraser size={14} /> Clear
@@ -820,6 +902,11 @@ function TopicDetails() {
     }
   };
 
+  const setRecognizedAnswer = useCallback((recognizedText) => {
+    setAnswer(recognizedText);
+    setAnswerState("");
+  }, []);
+
   const nextQuestion = () => {
     setQuestionIndex((index) => (index + 1) % questionBank.length);
     setAnswer("");
@@ -908,29 +995,35 @@ function TopicDetails() {
 
 
 
-        <section className="mt-6 grid items-stretch gap-4 sm:mt-8 sm:gap-6">
-          <article className="rounded-3xl border border-emerald-300/15 bg-emerald-300/[0.06] p-5 sm:p-7">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Understand the idea</p>
-            <h2 className="mt-2 text-2xl font-black">Key idea</h2>
-            <p className="mt-3 text-base leading-7 text-slate-200">{guide.idea}</p>
-            <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/45 p-4 sm:p-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Worked example</p>
-              <p className="mt-3 font-mono text-sm leading-7 text-slate-100 sm:text-base">{guide.example}</p>
+        <section className="mt-6 grid items-start gap-4 sm:mt-8 sm:gap-6">
+          <article className="topic-learning-card rounded-3xl border p-5 sm:p-7">
+            <div className="grid gap-5 md:grid-cols-2 md:gap-8">
+              <div>
+                <h2 className="text-lg font-bold">Key idea</h2>
+                <p className="mt-2 text-base leading-7 text-slate-300">{guide.idea}</p>
+              </div>
+              <div className="topic-worked-example rounded-2xl border p-4 sm:p-5">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Worked example</span>
+                <p className="mt-3 font-mono text-sm leading-7 text-slate-200 sm:text-base">{guide.example}</p>
+              </div>
             </div>
-            <p className="mt-5 text-sm leading-6 text-slate-400">Use the idea and example as a guide, then show your working and check your final answer below.</p>
           </article>
 
           <div className="topic-practice-workspace motion-surface reveal-on-scroll w-full rounded-3xl border border-emerald-300/15 bg-emerald-300/5 p-4 shadow-2xl sm:p-7 lg:p-8">
             <div className="flex flex-col gap-5 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Your turn</p>
-                <h2 className="mt-1 text-2xl font-black sm:text-3xl">Practice workspace</h2>
-                <p className="mt-1 text-sm text-slate-400">Solve at your own pace. Show your steps, then check your final answer.</p>
+                <h2 className="text-2xl font-black sm:text-3xl">Practice</h2>
+                <p className="mt-1 text-sm text-slate-400">Work through the question, then check your answer.</p>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold sm:min-w-[360px]">
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2"><span className="block text-lg font-black text-emerald-300">{progressPercentage}%</span><span className="text-slate-400">Mastered</span></div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2"><span className="block text-lg font-black">{levelAttempts.length}/{questionBank.length}</span><span className="text-slate-400">Attempted</span></div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2"><span className="block text-lg font-black text-emerald-300">{levelCorrect.length}/{questionBank.length}</span><span className="text-slate-400">Correct</span></div>
+              <div className="w-full sm:max-w-xs">
+                <div className="mb-2 flex items-center justify-between gap-3 text-xs font-semibold">
+                  <span className="text-slate-400">Level progress</span>
+                  <span className="text-emerald-300">{levelCorrect.length}/{questionBank.length} correct</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label="Practice level progress" aria-valuenow={progressPercentage} aria-valuemin={0} aria-valuemax={100}>
+                  <div className="h-full rounded-full bg-emerald-400 transition-all duration-500" style={{ width: `${progressPercentage}%` }} />
+                </div>
+                <p className="mt-1 text-right text-xs text-slate-500">{levelAttempts.length} attempted</p>
               </div>
             </div>
             <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/45 p-4 sm:p-5">
@@ -985,22 +1078,13 @@ function TopicDetails() {
                     <p className="mt-3 border-t border-white/10 pt-3 text-sm leading-6 text-slate-300">{currentQuestion.hint}</p>
                   </details>
                 )}
-                <div className="mt-7">
-                  <div className="mb-2 flex items-center justify-between text-xs font-semibold">
-                    <span className="text-slate-400">Level progress</span>
-                    <span className="text-emerald-300">{levelCorrect.length} of {questionBank.length} mastered</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label="Practice level progress" aria-valuenow={progressPercentage} aria-valuemin={0} aria-valuemax={100}>
-                    <div className="h-full rounded-full bg-emerald-400 transition-all duration-500" style={{ width: `${progressPercentage}%` }} />
-                  </div>
-                </div>
               </div>
 
               <div className="practice-answer-panel rounded-2xl border border-white/10 p-4 sm:p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-bold">How would you like to work?</p>
-                    <p className="mt-1 text-xs text-slate-500">Use the canvas for working; enter your final answer to check it.</p>
+                    <p className="mt-1 text-xs text-slate-500">Show your working, then enter the final answer to check it.</p>
                   </div>
                   <div className="grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-black/10 p-1" role="group" aria-label="Answer workspace mode">
                     <button type="button" aria-pressed={answerMode === "type"} onClick={() => setAnswerMode("type")} className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition ${answerMode === "type" ? "topic-primary" : "text-slate-400 hover:text-white"}`}><Keyboard size={14} /> Type</button>
@@ -1009,17 +1093,13 @@ function TopicDetails() {
                 </div>
 
                 <div className={answerMode === "write" ? "mt-4" : "hidden"}>
-                  <HandwritingPad key={`${activeLessonKey}-${practiceLevel}-${questionIndex}`} disabled={savingProgress || !currentQuestion} />
-                  <label className="mt-4 block text-sm font-semibold text-slate-300" htmlFor="practice-final-answer">Final answer <span className="font-normal text-slate-500">(type to check)</span></label>
+                  <HandwritingPad key={`${activeLessonKey}-${practiceLevel}-${questionIndex}`} active={answerMode === "write"} disabled={savingProgress || !currentQuestion} onRecognized={setRecognizedAnswer} />
+                  <label className="mt-4 block text-sm font-semibold text-slate-300" htmlFor="practice-final-answer">Final answer <span className="font-normal text-slate-500">(recognized automatically; you can edit it)</span></label>
                 </div>
                 {answerMode === "type" && (
-                  <div className="practice-answer-stage mt-4 flex min-h-[300px] flex-col justify-center rounded-2xl border border-dashed p-5 sm:min-h-[360px] sm:p-8">
-                    <Keyboard className="mb-4 text-emerald-400" size={26} />
-                    <label className="text-sm font-semibold text-slate-300" htmlFor="practice-final-answer">Your answer</label>
-                    <p className="mt-1 text-xs text-slate-500">Enter a number or expression, then check your work.</p>
-                  </div>
+                  <label className="mt-4 block text-sm font-semibold text-slate-300" htmlFor="practice-final-answer">Your answer</label>
                 )}
-                <input id="practice-final-answer" value={answer} disabled={savingProgress || !currentQuestion} onChange={(event) => { setAnswer(event.target.value); setAnswerState(""); }} onKeyDown={(event) => event.key === "Enter" && checkAnswer()} placeholder={answerMode === "write" ? "Type your final answer" : "e.g. 24 or 3/4"} className="practice-answer-input mt-3 w-full rounded-xl border px-4 py-3.5 text-base outline-none transition placeholder:text-slate-500 focus:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-60" />
+                <input id="practice-final-answer" value={answer} disabled={savingProgress || !currentQuestion} onChange={(event) => { setAnswer(event.target.value); setAnswerState(""); }} onKeyDown={(event) => event.key === "Enter" && checkAnswer()} placeholder={answerMode === "write" ? "Recognized answer appears here" : "e.g. 24 or 3/4"} className="practice-answer-input mt-3 w-full rounded-xl border px-4 py-3.5 text-base outline-none transition placeholder:text-slate-500 focus:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-60" />
                 {answerState === "missing-answer" && <p role="alert" className="mt-3 text-sm font-semibold text-amber-400">Enter your final answer before checking.</p>}
                 {answerState === "saving" && <p role="status" className="mt-3 text-sm font-semibold text-slate-400">Saving your answer...</p>}
                 {answerState === "correct" && <p role="status" className="mt-3 text-sm font-semibold text-emerald-400">Correct! Your progress is saved.</p>}
@@ -1033,14 +1113,6 @@ function TopicDetails() {
                 </div>
               </div>
             </div>
-            <label className="mt-5 block text-sm font-semibold text-slate-300" htmlFor="practice-answer">Your answer</label>
-            <input id="practice-answer" value={answer} disabled={savingProgress} onChange={(event) => { setAnswer(event.target.value); setAnswerState(""); }} onKeyDown={(event) => event.key === "Enter" && checkAnswer()} placeholder="Type your answer" className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/70 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-300/70 disabled:cursor-wait disabled:opacity-60" />
-            {answerState === "saving" && <p className="mt-3 text-sm font-semibold text-sky-200">Saving your answer...</p>}
-            {answerState === "correct" && <p className="mt-3 text-sm font-semibold text-emerald-300">Correct! Your progress is saved.</p>}
-            {answerState === "try-again" && <p className="mt-3 text-sm font-semibold text-amber-200">Not quite. Your attempt is saved. Hint: {currentQuestion.hint}</p>}
-            {answerState === "already-attempted" && <p className="mt-3 text-sm font-semibold text-sky-200">This question was already counted. Repeating it does not change XP or daily progress.</p>}
-            {answerState === "save-error" && <p className="mt-3 text-sm font-semibold text-red-300">Could not save this answer. Please try again.</p>}
-            <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap"><button type="button" disabled={savingProgress} onClick={checkAnswer} className="topic-primary motion-button w-full rounded-xl px-5 py-3 text-sm font-bold transition disabled:cursor-wait disabled:opacity-60 sm:w-auto">{savingProgress ? "Saving..." : "Check answer"}</button><button type="button" disabled={questionIndex === 0 || savingProgress} onClick={previousQuestion} className="motion-button w-full rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">Previous question</button><button type="button" disabled={savingProgress} onClick={nextQuestion} className="motion-button w-full rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">Next question</button></div>
           </div>
         </section>
 
