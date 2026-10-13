@@ -539,6 +539,7 @@ function resolveQuestionSetKey(title = "", topicTitle = "", order = 1) {
     "angles-lines", "area-perimeter", "circles-pythagoras",
     "equivalent-simplification", "adding-subtracting", "multiplying-dividing",
     "place-value-operations", "multiplication-division", "factors-multiples-gcf-lcm",
+    "statistics-data-basics", "statistics-averages-spread", "statistics-probability-charts",
   ];
   const match = titleMatches.find((key) => key.replace(/-/g, " ").split(" ").every((part) => text.includes(part)));
   if (match) return match;
@@ -548,6 +549,8 @@ function resolveQuestionSetKey(title = "", topicTitle = "", order = 1) {
     ["geometry", ["angles-lines", "area-perimeter", "circles-pythagoras"]],
     ["fraction", ["equivalent-simplification", "adding-subtracting", "multiplying-dividing"]],
     ["arithmetic", ["place-value-operations", "multiplication-division", "factors-multiples-gcf-lcm"]],
+    ["basic", ["place-value-operations", "multiplication-division", "factors-multiples-gcf-lcm"]],
+    ["statistic", ["statistics-data-basics", "statistics-averages-spread", "statistics-probability-charts"]],
   ];
   const group = groups.find(([key]) => text.includes(key));
   const index = Math.max(Number(order || 1) - 1, 0);

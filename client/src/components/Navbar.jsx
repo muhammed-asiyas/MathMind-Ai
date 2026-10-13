@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
-import { LayoutDashboard, BookOpen, LogOut, Menu, X, User, ShieldCheck, MessageCircle, Moon, Sun, Volume2, VolumeX } from "lucide-react";
+import { LayoutDashboard, BookOpen, LogOut, Menu, X, User, ShieldCheck, MessageCircle, Moon, Sun, Volume2, VolumeX, Trophy } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import api from "../services/api";
 import { useTheme } from "../context/themeContext";
@@ -115,6 +115,7 @@ function Navbar() {
   const isDashboardActive = pathname === "/dashboard";
   const isProfileActive = pathname === "/profile";
   const isChatActive = pathname === "/chat";
+  const isQuizActive = pathname === "/quiz";
   const isLoginActive = pathname === "/login";
   const isSignupActive = pathname === "/signup";
 
@@ -221,103 +222,110 @@ function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.035] p-1.5 shadow-inner shadow-white/[0.03] lg:flex">
-            <a
-              href="/#features"
-              onClick={(e) => handleAnchorClick(e, "features")}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${isFeaturesActive
-                ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold shadow-sm shadow-indigo-500/10"
-                : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
-                }`}
-            >
-              Features
-            </a>
-
-            <a
-              href="/#about"
-              onClick={(e) => handleAnchorClick(e, "about")}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${isAboutActive
-                ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold shadow-sm shadow-indigo-500/10"
-                : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
-                }`}
-            >
-              About
-            </a>
-
-            {themeToggle}
-            {soundToggle}
-
-              {user ? (
-                <div className="flex items-center gap-3 border-l border-white/10 pl-3">
-                  {user.role !== "admin" && (
-                    <>
-                      {/* <Link
-                      to="/study-hub"
-                      className="flex items-center gap-1.5 rounded-xl border border-transparent px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/5 hover:text-white"
-                    >
-                      <Target size={16} />
-                      Study Hub
-                    </Link> */}
-
-                      <Link
-                        to="/lessons"
-                        className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${isLessonsActive
-                          ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold shadow-sm shadow-indigo-500/10"
-                          : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
-                          }`}
-                      >
-                        <BookOpen size={16} />
-                        Lessons
-                      </Link>
-
-                      <Link
-                        to="/dashboard"
-                        className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${isDashboardActive
-                          ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold shadow-sm shadow-indigo-500/10"
-                          : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
-                          }`}
-                      >
-                        <LayoutDashboard size={16} />
-                        Dashboard
-                      </Link>
-                    </>
-                  )}
-
-                  {user.role === "admin" && (
+            {user ? (
+              <>
+                {user.role !== "admin" && (
+                  <>
                     <Link
-                      to="/admin"
-                      className="flex items-center gap-1.5 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-200 transition-all hover:bg-cyan-300/15"
-                    >
-                      <ShieldCheck size={16} />
-                      Admin
-                    </Link>
-                  )}
-
-                  {chatLink()}
-
-                  <div className="flex items-center gap-3 pl-2">
-                    <Link
-                      to="/profile"
-                      className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all ${isProfileActive
-                        ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
+                      to="/dashboard"
+                      className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${isDashboardActive
+                        ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold shadow-sm shadow-indigo-500/10"
                         : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
                         }`}
                     >
-                      <User size={15} className="text-indigo-400" />
-                      {user.firstName || "Student"}
+                      <LayoutDashboard size={16} />
+                      Dashboard
                     </Link>
 
-                    <button
-                      type="button"
-                      onClick={() => setShowLogoutConfirm(true)}
-                      title="Logout"
-                      className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300"
+                    <Link
+                      to="/lessons"
+                      className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${isLessonsActive
+                        ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold shadow-sm shadow-indigo-500/10"
+                        : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
+                        }`}
                     >
-                      <LogOut size={14} />
-                      Logout
-                    </button>
-                  </div>
+                      <BookOpen size={16} />
+                      Lessons
+                    </Link>
+
+                    <Link
+                      to="/quiz"
+                      className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${isQuizActive
+                        ? "bg-amber-300/15 text-amber-200 border border-amber-300/30 font-semibold"
+                        : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
+                        }`}
+                    >
+                      <Trophy size={16} />
+                      Math Sprint
+                    </Link>
+                  </>
+                )}
+
+                {user.role === "admin" && (
+                  <Link
+                    to="/admin"
+                    className="flex items-center gap-1.5 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-200 transition-all hover:bg-cyan-300/15"
+                  >
+                    <ShieldCheck size={16} />
+                    Admin
+                  </Link>
+                )}
+
+                {chatLink()}
+
+                <div className="flex items-center gap-2 border-l border-white/10 pl-3">
+                  {themeToggle}
+                  {soundToggle}
+
+                  <Link
+                    to="/profile"
+                    className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all ${isProfileActive
+                      ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
+                      : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
+                      }`}
+                  >
+                    <User size={15} className="text-indigo-400" />
+                    {user.firstName || "Student"}
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowLogoutConfirm(true)}
+                    title="Logout"
+                    className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300"
+                  >
+                    <LogOut size={14} />
+                    Logout
+                  </button>
                 </div>
-              ) : (
+              </>
+            ) : (
+              <>
+                <a
+                  href="/#features"
+                  onClick={(e) => handleAnchorClick(e, "features")}
+                  className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${isFeaturesActive
+                    ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold shadow-sm shadow-indigo-500/10"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
+                    }`}
+                >
+                  Features
+                </a>
+
+                <a
+                  href="/#about"
+                  onClick={(e) => handleAnchorClick(e, "about")}
+                  className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${isAboutActive
+                    ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold shadow-sm shadow-indigo-500/10"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent"
+                    }`}
+                >
+                  About
+                </a>
+
+                {themeToggle}
+                {soundToggle}
+
                 <div className="flex items-center gap-3 border-l border-white/10 pl-3">
                   <Link
                     to="/login"
@@ -339,25 +347,27 @@ function Navbar() {
                     Get Started
                   </Link>
                 </div>
-              )}
+              </>
+            )}
           </div>
 
           {/* Mobile menu toggle */}
-          <div className="flex items-center gap-3 lg:hidden">
+          <div className="flex items-center gap-2.5 lg:hidden">
             {user && user.role !== "admin" && (
               <Link
                 to="/dashboard"
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${isDashboardActive
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${isDashboardActive
                   ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
                   : "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
                   }`}
               >
-                <LayoutDashboard size={15} />
+                <LayoutDashboard size={14} />
                 Dashboard
               </Link>
             )}
 
             {themeToggle}
+            {soundToggle}
 
             <button
               type="button"
@@ -375,7 +385,7 @@ function Navbar() {
                   exit={{ opacity: 0, rotate: 90, scale: 0.7 }}
                   transition={{ duration: 0.18, ease: "easeOut" }}
                 >
-                  {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                  {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
                 </motion.span>
               </AnimatePresence>
             </button>
@@ -386,48 +396,31 @@ function Navbar() {
         <AnimatePresence initial={false}>
           {mobileMenuOpen && (
             <motion.div
-              className="app-navbar-mobile-menu overflow-hidden border-t border-white/[0.08] bg-slate-950/55 shadow-[0_18px_40px_rgba(2,6,23,0.3)] backdrop-blur-2xl lg:hidden"
+              className="app-navbar-mobile-menu overflow-hidden border-t border-white/[0.08] bg-slate-950/90 shadow-[0_18px_40px_rgba(2,6,23,0.3)] backdrop-blur-2xl lg:hidden"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="space-y-3 px-6 py-4">
-                <a
-                  href="/#features"
-                  onClick={(e) => {
-                    handleAnchorClick(e, "features");
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${isFeaturesActive
-                    ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
-                    : "text-slate-300 hover:bg-white/5 hover:text-white"
-                    }`}
-                >
-                  Features
-                </a>
-                <a
-                  href="/#about"
-                  onClick={(e) => {
-                    handleAnchorClick(e, "about");
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${isAboutActive
-                    ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
-                    : "text-slate-300 hover:bg-white/5 hover:text-white"
-                    }`}
-                >
-                  About
-                </a>
-
                 {user ? (
-                  <div className="border-t border-white/10 pt-3 space-y-3">
-                    <p className="text-xs text-indigo-300 font-medium px-3">
+                  <div className="space-y-2">
+                    <p className="text-xs text-indigo-300 font-medium px-3 pb-1 border-b border-white/10">
                       Logged in as {user.firstName} {user.lastName}
                     </p>
-                    {chatLink(true)}
                     {user.role !== "admin" && (
                       <>
+                        <Link
+                          to="/dashboard"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${isDashboardActive
+                            ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
+                            : "text-slate-300 hover:bg-white/5 hover:text-white"
+                            }`}
+                        >
+                          <LayoutDashboard size={16} />
+                          Dashboard
+                        </Link>
                         <Link
                           to="/lessons"
                           onClick={() => setMobileMenuOpen(false)}
@@ -440,15 +433,15 @@ function Navbar() {
                           Lessons
                         </Link>
                         <Link
-                          to="/dashboard"
+                          to="/quiz"
                           onClick={() => setMobileMenuOpen(false)}
-                          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${isDashboardActive
-                            ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
+                          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${isQuizActive
+                            ? "bg-amber-300/15 text-amber-200 border border-amber-300/30 font-semibold"
                             : "text-slate-300 hover:bg-white/5 hover:text-white"
                             }`}
                         >
-                          <LayoutDashboard size={16} />
-                          Dashboard
+                          <Trophy size={16} />
+                          Math Sprint
                         </Link>
                       </>
                     )}
@@ -462,6 +455,7 @@ function Navbar() {
                         Admin workspace
                       </Link>
                     )}
+                    {chatLink(true)}
                     <Link
                       to="/profile"
                       onClick={() => setMobileMenuOpen(false)}
@@ -486,28 +480,56 @@ function Navbar() {
                     </button>
                   </div>
                 ) : (
-                  <div className="border-t border-white/10 pt-3 flex flex-col gap-2">
-                    <Link
-                      to="/login"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`block text-center rounded-lg border px-4 py-2 text-sm font-medium transition ${isLoginActive
-                        ? "border-indigo-500/40 bg-indigo-500/15 text-indigo-400 font-semibold"
-                        : "border-white/20 text-white hover:bg-white/5"
+                  <>
+                    <a
+                      href="/#features"
+                      onClick={(e) => {
+                        handleAnchorClick(e, "features");
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${isFeaturesActive
+                        ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
+                        : "text-slate-300 hover:bg-white/5 hover:text-white"
                         }`}
                     >
-                      Login
-                    </Link>
-                    <Link
-                      to="/signup"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`block text-center rounded-lg px-4 py-2 text-sm font-semibold transition ${isSignupActive
-                        ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 ring-2 ring-indigo-400/40"
-                        : "bg-indigo-500 text-white hover:bg-indigo-400"
+                      Features
+                    </a>
+                    <a
+                      href="/#about"
+                      onClick={(e) => {
+                        handleAnchorClick(e, "about");
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${isAboutActive
+                        ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-semibold"
+                        : "text-slate-300 hover:bg-white/5 hover:text-white"
                         }`}
                     >
-                      Sign Up
-                    </Link>
-                  </div>
+                      About
+                    </a>
+                    <div className="border-t border-white/10 pt-3 flex flex-col gap-2">
+                      <Link
+                        to="/login"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`block text-center rounded-lg border px-4 py-2 text-sm font-medium transition ${isLoginActive
+                          ? "border-indigo-500/40 bg-indigo-500/15 text-indigo-400 font-semibold"
+                          : "border-white/20 text-white hover:bg-white/5"
+                          }`}
+                      >
+                        Login
+                      </Link>
+                      <Link
+                        to="/signup"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`block text-center rounded-lg px-4 py-2 text-sm font-semibold transition ${isSignupActive
+                          ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 ring-2 ring-indigo-400/40"
+                          : "bg-indigo-500 text-white hover:bg-indigo-400"
+                          }`}
+                      >
+                        Sign Up
+                      </Link>
+                    </div>
+                  </>
                 )}
               </div>
             </motion.div>
@@ -584,9 +606,9 @@ function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
+      <NotificationToast toast={toast} onDismiss={() => setToast(null)} />
     </header>
   );
 }
 
 export default Navbar;
-

@@ -281,13 +281,22 @@ function Dashboard() {
                 step-by-step explanation.
               </p>
 
-              <button
-                type="button"
-                onClick={() => navigate("/ai-tutor")}
-                className="ai-tutor-cta mt-7 rounded-xl bg-white px-6 py-3 font-bold text-indigo-600 transition hover:bg-indigo-50"
-              >
-                <span className="inline-flex items-center gap-2">Ask AI Tutor <ArrowRight size={16} aria-hidden="true" /></span>
-              </button>
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate("/ai-tutor")}
+                  className="ai-tutor-cta rounded-xl px-6 py-3 font-bold transition"
+                >
+                  <span className="inline-flex items-center gap-2">Ask AI Tutor <ArrowRight size={16} aria-hidden="true" /></span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/quiz")}
+                  className="math-sprint-btn rounded-xl px-6 py-3 font-bold transition"
+                >
+                  <span className="inline-flex items-center gap-2"><Trophy size={16} aria-hidden="true" /> Play Math Sprint</span>
+                </button>
+              </div>
 
             </div>
           </div>

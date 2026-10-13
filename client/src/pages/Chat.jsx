@@ -45,9 +45,11 @@ function Chat() {
   }, []);
 
   useEffect(() => {
-    api.patch("/notifications/read-all").catch(() => {});
-
     let active = true;
+    api.patch("/notifications/read-all").catch((requestError) => {
+      if (active) console.error("Unable to mark chat notifications as read:", requestError);
+    });
+
     const load = async () => {
       try {
         const { data } = await api.get(isAdmin ? "/chat/conversations" : "/chat/conversations/me");

@@ -1,18 +1,21 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
-import Lessons from "./pages/Lessons";
-import TopicDetails from "./pages/student/TopicDetails";
-import Profile from "./pages/Profile";
-import AITutor from "./pages/student/AITutor";
-import StudyHub from "./pages/StudyHub";
-import Admin from "./pages/Admin";
-import Chat from "./pages/Chat";
+import LoadingSpinner from "./components/LoadingSpinner";
+
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Lessons = lazy(() => import("./pages/Lessons"));
+const TopicDetails = lazy(() => import("./pages/student/TopicDetails"));
+const Profile = lazy(() => import("./pages/Profile"));
+const AITutor = lazy(() => import("./pages/student/AITutor"));
+const Quiz = lazy(() => import("./pages/student/Quiz"));
+const StudyHub = lazy(() => import("./pages/StudyHub"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Chat = lazy(() => import("./pages/Chat"));
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
@@ -100,6 +103,7 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
         <ScrollEffects />
+        <Suspense fallback={<LoadingSpinner fullScreen label="Loading your workspace..." />}>
         <Routes>
         <Route path="/" element={<Home />} />
 
@@ -194,6 +198,15 @@ function App() {
         />
 
         <Route
+          path="/quiz"
+          element={
+            <ProtectedRoute>
+              <Quiz />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/admin"
           element={
             <AdminRoute>
@@ -211,6 +224,7 @@ function App() {
           }
         />
         </Routes>
+        </Suspense>
         </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>

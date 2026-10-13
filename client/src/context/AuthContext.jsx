@@ -2,8 +2,17 @@ import { useEffect, useState } from "react";
 import api from "../services/api";
 import { AuthContext } from "./authContext";
 
+const getCachedUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user") || "null");
+  } catch {
+    localStorage.removeItem("user");
+    return null;
+  }
+};
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(getCachedUser);
   const [isLoading, setIsLoading] = useState(
     () => Boolean(localStorage.getItem("token"))
   );
@@ -21,10 +30,14 @@ export function AuthProvider({ children }) {
         setUser(profile);
         localStorage.setItem("user", JSON.stringify(profile));
       })
-      .catch(() => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        setUser(null);
+      .catch((error) => {
+        // Keep a cached session available during a temporary API outage, but never
+        // retain it if the server says the token is no longer valid.
+        if (error.response?.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          setUser(null);
+        }
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -33,12 +46,14 @@ export function AuthProvider({ children }) {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(authenticatedUser));
     setUser(authenticatedUser);
+    setIsLoading(false);
   };
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
+    setIsLoading(false);
   };
 
   const updateUser = (updatedUser) => {

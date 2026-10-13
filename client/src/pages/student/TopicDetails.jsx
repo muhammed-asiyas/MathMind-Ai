@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, BookOpen, Clock3, PlayCircle, Sparkles, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Clock3, Eraser, Keyboard, PenLine, PlayCircle, Sparkles, CheckCircle2 } from "lucide-react";
 import api from "../../services/api";
 import VideoPlayer from "../../components/VideoPlayer";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import IconGlyph from "../../components/IconGlyph";
+import Navbar from "../../components/Navbar";
 import { useAuth } from "../../context/authContext";
 import { playSuccess } from "../../utils/soundEffects";
 
@@ -574,6 +575,102 @@ function QuestionAnimation({ question, questionIndex, topicType }) {
   );
 }
 
+function HandwritingPad({ disabled }) {
+  const [strokes, setStrokes] = useState([]);
+  const [activeStroke, setActiveStroke] = useState("");
+  const activeStrokeRef = useRef("");
+
+  const getPoint = (event) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - bounds.left) / bounds.width) * 1000;
+    const y = ((event.clientY - bounds.top) / bounds.height) * 360;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  };
+
+  const startStroke = (event) => {
+    if (disabled) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    activeStrokeRef.current = `M ${getPoint(event)}`;
+    setActiveStroke(activeStrokeRef.current);
+  };
+
+  const continueStroke = (event) => {
+    if (!activeStrokeRef.current) return;
+    event.preventDefault();
+    activeStrokeRef.current += ` L ${getPoint(event)}`;
+    setActiveStroke(activeStrokeRef.current);
+  };
+
+  const finishStroke = () => {
+    if (!activeStrokeRef.current) return;
+    setStrokes((currentStrokes) => [...currentStrokes, activeStrokeRef.current]);
+    activeStrokeRef.current = "";
+    setActiveStroke("");
+  };
+
+  const clearPad = () => {
+    activeStrokeRef.current = "";
+    setActiveStroke("");
+    setStrokes([]);
+  };
+
+  return (
+    <div className="practice-writing-shell overflow-hidden rounded-2xl border">
+      <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+        <div>
+          <p className="text-sm font-bold">Working space</p>
+          <p className="text-xs text-slate-500">Write out your steps with a mouse, stylus, or finger.</p>
+        </div>
+        <button type="button" onClick={clearPad} disabled={disabled || strokes.length === 0} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold text-slate-400 transition hover:text-emerald-400 disabled:cursor-not-allowed disabled:opacity-40">
+          <Eraser size={14} /> Clear
+        </button>
+      </div>
+      <svg
+        viewBox="0 0 1000 360"
+        preserveAspectRatio="none"
+        role="application"
+        aria-label="Handwriting workspace. Draw your working here."
+        className={`practice-writing-pad block h-[300px] w-full touch-none sm:h-[360px] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-crosshair"}`}
+        onPointerDown={startStroke}
+        onPointerMove={continueStroke}
+        onPointerUp={finishStroke}
+        onPointerCancel={finishStroke}
+      >
+        <defs>
+          <pattern id="practice-writing-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+            <path d="M 32 0 L 0 0 0 32" fill="none" className="practice-writing-grid-line" />
+          </pattern>
+        </defs>
+        <rect width="1000" height="360" fill="url(#practice-writing-grid)" />
+        {strokes.map((stroke, index) => <path key={index} d={stroke} className="practice-writing-stroke" />)}
+        {activeStroke && <path d={activeStroke} className="practice-writing-stroke" />}
+      </svg>
+    </div>
+  );
+}
+
+function areAnswersEquivalent(submittedAnswer, expectedAnswer) {
+  const normalize = (value) => String(value ?? "").trim().toLowerCase().replace(/\s+/g, "");
+  const submitted = normalize(submittedAnswer);
+  const expected = normalize(expectedAnswer);
+  if (submitted === expected) return true;
+
+  const toNumber = (value) => {
+    if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:\/[+-]?(?:\d+(?:\.\d*)?|\.\d+))?$/.test(value)) return null;
+    const [numeratorText, denominatorText] = value.split("/");
+    const numerator = Number(numeratorText);
+    const denominator = denominatorText === undefined ? 1 : Number(denominatorText);
+    if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) return null;
+    return numerator / denominator;
+  };
+
+  const submittedNumber = toNumber(submitted);
+  const expectedNumber = toNumber(expected);
+  return submittedNumber !== null && expectedNumber !== null
+    && Math.abs(submittedNumber - expectedNumber) <= 1e-9 * Math.max(1, Math.abs(expectedNumber));
+}
+
 function TopicDetails() {
   const { topicId, lessonId: routeLessonId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -589,6 +686,7 @@ function TopicDetails() {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [practiceLevel, setPracticeLevel] = useState("Beginner");
   const [answer, setAnswer] = useState("");
+  const [answerMode, setAnswerMode] = useState("type");
   const [answerState, setAnswerState] = useState("");
   const [showVisualExplanation, setShowVisualExplanation] = useState(false);
   const [topicAttempts, setTopicAttempts] = useState([]);
@@ -691,8 +789,11 @@ function TopicDetails() {
     : 0;
 
   const checkAnswer = async () => {
-    const normalise = (value) => value.trim().toLowerCase().replace(/\s+/g, "");
-    const isCorrect = normalise(answer) === normalise(currentQuestion.answer);
+    if (!currentQuestion || !answer.trim() || savingProgress) {
+      if (currentQuestion && !answer.trim()) setAnswerState("missing-answer");
+      return;
+    }
+    const isCorrect = areAnswersEquivalent(answer, currentQuestion.answer);
     setSavingProgress(true);
     setAnswerState("saving");
 
@@ -722,6 +823,7 @@ function TopicDetails() {
   const nextQuestion = () => {
     setQuestionIndex((index) => (index + 1) % questionBank.length);
     setAnswer("");
+    setAnswerMode("type");
     setAnswerState("");
     setShowVisualExplanation(false);
   };
@@ -729,6 +831,7 @@ function TopicDetails() {
   const previousQuestion = () => {
     setQuestionIndex((index) => Math.max(index - 1, 0));
     setAnswer("");
+    setAnswerMode("type");
     setAnswerState("");
     setShowVisualExplanation(false);
   };
@@ -737,6 +840,7 @@ function TopicDetails() {
     setPracticeLevel(level);
     setQuestionIndex(0);
     setAnswer("");
+    setAnswerMode("type");
     setAnswerState("");
     setShowVisualExplanation(false);
   };
@@ -745,28 +849,25 @@ function TopicDetails() {
   if (error || !topic) return <div className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-center text-red-300">{error || "Topic not found."}</div>;
 
   return (
-    <div className="topic-details-page min-h-screen bg-slate-950 text-white">
-      <nav className="border-b border-white/10 bg-slate-950/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5">
-          <Link to="/dashboard" className="shrink-0 text-xl font-black sm:text-2xl">MathMind<span className="text-indigo-400"> AI</span></Link>
-          <div className="flex items-center gap-3">
-            <Link to="/lessons" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10">
-              <BookOpen size={15} /> All Route Lessons
-            </Link>
-            <Link to="/dashboard" className="flex shrink-0 items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs transition hover:bg-white/10 sm:px-4 sm:text-sm">
-              <ArrowLeft size={16} /> <span className="hidden xs:inline sm:inline">Dashboard</span>
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <div className="topic-details-page min-h-screen">
+      <Navbar />
 
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <Link
+            to="/lessons"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-semibold text-slate-300 transition hover:border-emerald-400/30 hover:bg-white/10 hover:text-white"
+          >
+            <ArrowLeft size={14} /> Back to Lessons
+          </Link>
+        </div>
+
         <header className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-indigo-300">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-emerald-300">
             <Sparkles size={14} />
             {guide.eyebrow}
           </div>
-          <h1 className="mt-4 flex items-center gap-3 text-3xl font-black tracking-tight sm:text-4xl md:text-5xl"><IconGlyph name={topic.icon} size={30} className="shrink-0 text-indigo-300" />{guide.title}</h1>
+          <h1 className="mt-4 flex items-center gap-3 text-3xl font-black tracking-tight sm:text-4xl md:text-5xl"><IconGlyph name={topic.icon} size={30} className="shrink-0 text-emerald-300" />{guide.title}</h1>
           <p className="mt-4 text-lg leading-8 text-slate-400">{guide.summary}</p>
         </header>
 
@@ -789,10 +890,11 @@ function TopicDetails() {
                     setQuestionIndex(0);
                     setAnswer("");
                     setAnswerState("");
+                    setAnswerMode("type");
                   }}
                     className={`motion-button min-w-0 flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition sm:flex-none sm:px-4 sm:text-sm ${
                     isSelected
-                      ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 ring-2 ring-indigo-400/40"
+                      ? "topic-primary shadow-lg ring-2 ring-emerald-400/40"
                       : "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
                   }`}
                 >
@@ -806,35 +908,36 @@ function TopicDetails() {
 
 
 
-        <section className="mt-6 grid items-stretch gap-4 sm:mt-8 sm:gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <article className="rounded-3xl border border-indigo-300/15 bg-indigo-300/[0.06] p-5 sm:p-7">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-300">Understand the idea</p>
+        <section className="mt-6 grid items-stretch gap-4 sm:mt-8 sm:gap-6">
+          <article className="rounded-3xl border border-emerald-300/15 bg-emerald-300/[0.06] p-5 sm:p-7">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Understand the idea</p>
             <h2 className="mt-2 text-2xl font-black">Key idea</h2>
             <p className="mt-3 text-base leading-7 text-slate-200">{guide.idea}</p>
             <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/45 p-4 sm:p-5">
               <p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Worked example</p>
               <p className="mt-3 font-mono text-sm leading-7 text-slate-100 sm:text-base">{guide.example}</p>
             </div>
-            <p className="mt-5 text-sm leading-6 text-slate-400">Try the practice question on the right. Use the idea and example as a guide, then check your answer.</p>
+            <p className="mt-5 text-sm leading-6 text-slate-400">Use the idea and example as a guide, then show your working and check your final answer below.</p>
           </article>
 
-          <div className="motion-surface reveal-on-scroll rounded-3xl border border-amber-300/15 bg-amber-300/5 p-4 sm:p-7">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="topic-practice-workspace motion-surface reveal-on-scroll w-full rounded-3xl border border-emerald-300/15 bg-emerald-300/5 p-4 shadow-2xl sm:p-7 lg:p-8">
+            <div className="flex flex-col gap-5 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-300">Your turn</p>
-                <h2 className="mt-1 text-2xl font-black">Practice</h2>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Your turn</p>
+                <h2 className="mt-1 text-2xl font-black sm:text-3xl">Practice workspace</h2>
+                <p className="mt-1 text-sm text-slate-400">Solve at your own pace. Show your steps, then check your final answer.</p>
               </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                <span className="rounded-full bg-indigo-300/15 px-3 py-1.5 text-indigo-200">Progress: {progressPercentage}%</span>
-                <span className="rounded-full bg-white/10 px-3 py-1.5 text-slate-300">Attempted: {levelAttempts.length}/{questionBank.length}</span>
-                <span className="rounded-full bg-emerald-300/15 px-3 py-1.5 text-emerald-200">Correct: {levelCorrect.length}/{questionBank.length}</span>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold sm:min-w-[360px]">
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2"><span className="block text-lg font-black text-emerald-300">{progressPercentage}%</span><span className="text-slate-400">Mastered</span></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2"><span className="block text-lg font-black">{levelAttempts.length}/{questionBank.length}</span><span className="text-slate-400">Attempted</span></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2"><span className="block text-lg font-black text-emerald-300">{levelCorrect.length}/{questionBank.length}</span><span className="text-slate-400">Correct</span></div>
               </div>
             </div>
-            <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+            <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/45 p-4 sm:p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Choose your practice level</p>
-                  <p className="mt-1 text-xs text-slate-500">Recommended: start with Beginner, then progress to real-world challenges.</p>
+                  <p className="mt-1 text-xs text-slate-500">Build confidence, then move on when you’re ready.</p>
                 </div>
                 <span className="rounded-full bg-emerald-300/15 px-3 py-1 text-xs font-bold text-emerald-200">{questionBank.length} questions</span>
               </div>
@@ -846,17 +949,18 @@ function TopicDetails() {
                 }, {
                   key: "Intermediate",
                   description: "Apply it in guided problems",
-                  classes: "border-sky-300/30 bg-sky-300/10 text-sky-200",
+                  classes: "border-emerald-300/30 bg-emerald-300/10 text-emerald-200",
                 }, {
                   key: "Hard",
                   description: "Stretch with real decisions",
-                  classes: "border-rose-300/30 bg-rose-300/10 text-rose-200",
+                  classes: "border-emerald-300/30 bg-emerald-300/10 text-emerald-200",
                 }].map((level) => (
                   <button
                     key={level.key}
                     type="button"
                     onClick={() => changePracticeLevel(level.key)}
-                    className={`motion-button rounded-xl border px-3 py-3 text-left transition ${level.classes} ${practiceLevel === level.key ? "ring-2 ring-white/60" : "opacity-65 hover:opacity-100"}`}
+                    aria-pressed={practiceLevel === level.key}
+                    className={`motion-button rounded-xl border px-3 py-3 text-left transition ${level.classes} ${practiceLevel === level.key ? "ring-2 ring-emerald-300/70" : "opacity-65 hover:opacity-100"}`}
                   >
                     <span className="block text-sm font-bold">{level.key}</span>
                     <span className="mt-1 block text-xs opacity-80">{level.description}</span>
@@ -864,22 +968,79 @@ function TopicDetails() {
                 ))}
               </div>
             </div>
-            <div className="mt-6 rounded-2xl border border-amber-200/15 bg-slate-950/45 p-4 sm:p-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-amber-200">Question {questionIndex + 1} of {questionBank.length}</p>
-              <p className="mt-3 text-lg font-semibold leading-8 text-white sm:text-xl">{currentQuestion.prompt}</p>
+            <div className="mt-6 grid items-stretch gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+              <div className="practice-question-card rounded-2xl border border-emerald-300/20 bg-slate-950/45 p-5 sm:p-7">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="rounded-full bg-emerald-300/15 px-3 py-1 text-xs font-bold text-emerald-200">Question {questionBank.length ? questionIndex + 1 : 0} of {questionBank.length}</span>
+                  {currentQuestion?.difficulty && <span className="text-xs font-semibold text-slate-400">{currentQuestion.difficulty}</span>}
+                </div>
+                {currentQuestion ? (
+                  <p className="mt-6 text-xl font-semibold leading-9 text-white sm:text-2xl">{currentQuestion.prompt}</p>
+                ) : (
+                  <p className="mt-6 text-base leading-7 text-slate-300">There are no questions available for this level yet. Choose another practice level or come back later.</p>
+                )}
+                {currentQuestion && (
+                  <details className="group mt-6 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-emerald-200 marker:text-emerald-300">Need a hint?</summary>
+                    <p className="mt-3 border-t border-white/10 pt-3 text-sm leading-6 text-slate-300">{currentQuestion.hint}</p>
+                  </details>
+                )}
+                <div className="mt-7">
+                  <div className="mb-2 flex items-center justify-between text-xs font-semibold">
+                    <span className="text-slate-400">Level progress</span>
+                    <span className="text-emerald-300">{levelCorrect.length} of {questionBank.length} mastered</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label="Practice level progress" aria-valuenow={progressPercentage} aria-valuemin={0} aria-valuemax={100}>
+                    <div className="h-full rounded-full bg-emerald-400 transition-all duration-500" style={{ width: `${progressPercentage}%` }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="practice-answer-panel rounded-2xl border border-white/10 p-4 sm:p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-bold">How would you like to work?</p>
+                    <p className="mt-1 text-xs text-slate-500">Use the canvas for working; enter your final answer to check it.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-black/10 p-1" role="group" aria-label="Answer workspace mode">
+                    <button type="button" aria-pressed={answerMode === "type"} onClick={() => setAnswerMode("type")} className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition ${answerMode === "type" ? "topic-primary" : "text-slate-400 hover:text-white"}`}><Keyboard size={14} /> Type</button>
+                    <button type="button" aria-pressed={answerMode === "write"} onClick={() => setAnswerMode("write")} className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition ${answerMode === "write" ? "topic-primary" : "text-slate-400 hover:text-white"}`}><PenLine size={14} /> Handwrite</button>
+                  </div>
+                </div>
+
+                <div className={answerMode === "write" ? "mt-4" : "hidden"}>
+                  <HandwritingPad key={`${activeLessonKey}-${practiceLevel}-${questionIndex}`} disabled={savingProgress || !currentQuestion} />
+                  <label className="mt-4 block text-sm font-semibold text-slate-300" htmlFor="practice-final-answer">Final answer <span className="font-normal text-slate-500">(type to check)</span></label>
+                </div>
+                {answerMode === "type" && (
+                  <div className="practice-answer-stage mt-4 flex min-h-[300px] flex-col justify-center rounded-2xl border border-dashed p-5 sm:min-h-[360px] sm:p-8">
+                    <Keyboard className="mb-4 text-emerald-400" size={26} />
+                    <label className="text-sm font-semibold text-slate-300" htmlFor="practice-final-answer">Your answer</label>
+                    <p className="mt-1 text-xs text-slate-500">Enter a number or expression, then check your work.</p>
+                  </div>
+                )}
+                <input id="practice-final-answer" value={answer} disabled={savingProgress || !currentQuestion} onChange={(event) => { setAnswer(event.target.value); setAnswerState(""); }} onKeyDown={(event) => event.key === "Enter" && checkAnswer()} placeholder={answerMode === "write" ? "Type your final answer" : "e.g. 24 or 3/4"} className="practice-answer-input mt-3 w-full rounded-xl border px-4 py-3.5 text-base outline-none transition placeholder:text-slate-500 focus:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-60" />
+                {answerState === "missing-answer" && <p role="alert" className="mt-3 text-sm font-semibold text-amber-400">Enter your final answer before checking.</p>}
+                {answerState === "saving" && <p role="status" className="mt-3 text-sm font-semibold text-slate-400">Saving your answer...</p>}
+                {answerState === "correct" && <p role="status" className="mt-3 text-sm font-semibold text-emerald-400">Correct! Your progress is saved.</p>}
+                {answerState === "try-again" && <p role="status" className="mt-3 text-sm font-semibold text-amber-400">Not quite. Your attempt is saved. Hint: {currentQuestion?.hint}</p>}
+                {answerState === "already-attempted" && <p role="status" className="mt-3 text-sm font-semibold text-emerald-400">This question was already counted. Repeating it does not change XP or daily progress.</p>}
+                {answerState === "save-error" && <p role="alert" className="mt-3 text-sm font-semibold text-red-400">Could not save this answer. Please try again.</p>}
+                <div className="mt-5 grid gap-3 sm:flex sm:flex-wrap">
+                  <button type="button" disabled={savingProgress || !currentQuestion} onClick={checkAnswer} className="topic-primary motion-button w-full rounded-xl px-6 py-3.5 text-sm font-bold transition disabled:cursor-wait disabled:opacity-60 sm:w-auto">{savingProgress ? "Saving..." : "Check answer"}</button>
+                  <button type="button" disabled={questionIndex === 0 || savingProgress || !currentQuestion} onClick={previousQuestion} className="motion-button w-full rounded-xl border border-white/15 px-5 py-3.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">Previous question</button>
+                  <button type="button" disabled={savingProgress || !currentQuestion} onClick={nextQuestion} className="motion-button w-full rounded-xl border border-white/15 px-5 py-3.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-wait disabled:opacity-60 sm:w-auto">Next question</button>
+                </div>
+              </div>
             </div>
-            <details className="group mt-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <summary className="cursor-pointer text-sm font-semibold text-indigo-200 marker:text-indigo-300">Need a hint?</summary>
-              <p className="mt-3 border-t border-white/10 pt-3 text-sm leading-6 text-slate-300">{currentQuestion.hint}</p>
-            </details>
             <label className="mt-5 block text-sm font-semibold text-slate-300" htmlFor="practice-answer">Your answer</label>
-            <input id="practice-answer" value={answer} disabled={savingProgress} onChange={(event) => { setAnswer(event.target.value); setAnswerState(""); }} onKeyDown={(event) => event.key === "Enter" && checkAnswer()} placeholder="Type your answer" className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/70 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-amber-300/70 disabled:cursor-wait disabled:opacity-60" />
+            <input id="practice-answer" value={answer} disabled={savingProgress} onChange={(event) => { setAnswer(event.target.value); setAnswerState(""); }} onKeyDown={(event) => event.key === "Enter" && checkAnswer()} placeholder="Type your answer" className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950/70 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-300/70 disabled:cursor-wait disabled:opacity-60" />
             {answerState === "saving" && <p className="mt-3 text-sm font-semibold text-sky-200">Saving your answer...</p>}
             {answerState === "correct" && <p className="mt-3 text-sm font-semibold text-emerald-300">Correct! Your progress is saved.</p>}
             {answerState === "try-again" && <p className="mt-3 text-sm font-semibold text-amber-200">Not quite. Your attempt is saved. Hint: {currentQuestion.hint}</p>}
             {answerState === "already-attempted" && <p className="mt-3 text-sm font-semibold text-sky-200">This question was already counted. Repeating it does not change XP or daily progress.</p>}
             {answerState === "save-error" && <p className="mt-3 text-sm font-semibold text-red-300">Could not save this answer. Please try again.</p>}
-            <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap"><button type="button" disabled={savingProgress} onClick={checkAnswer} className="motion-button w-full rounded-xl bg-amber-300 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-200 disabled:cursor-wait disabled:opacity-60 sm:w-auto">{savingProgress ? "Saving..." : "Check answer"}</button><button type="button" disabled={questionIndex === 0 || savingProgress} onClick={previousQuestion} className="motion-button w-full rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">Previous question</button><button type="button" disabled={savingProgress} onClick={nextQuestion} className="motion-button w-full rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">Next question</button></div>
+            <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap"><button type="button" disabled={savingProgress} onClick={checkAnswer} className="topic-primary motion-button w-full rounded-xl px-5 py-3 text-sm font-bold transition disabled:cursor-wait disabled:opacity-60 sm:w-auto">{savingProgress ? "Saving..." : "Check answer"}</button><button type="button" disabled={questionIndex === 0 || savingProgress} onClick={previousQuestion} className="motion-button w-full rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">Previous question</button><button type="button" disabled={savingProgress} onClick={nextQuestion} className="motion-button w-full rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">Next question</button></div>
           </div>
         </section>
 
@@ -887,7 +1048,7 @@ function TopicDetails() {
           {/* Section header */}
           <div className="mb-5 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-indigo-400">Watch and learn</p>
+              <p className="text-sm font-semibold uppercase tracking-wider text-emerald-400">Watch and learn</p>
               <h2 className="mt-1 text-2xl font-black sm:text-3xl">Lesson Video</h2>
               <p className="mt-1 text-xs text-slate-500">
                 Topic lesson video · {activeLessonObject?.title || guide.title}

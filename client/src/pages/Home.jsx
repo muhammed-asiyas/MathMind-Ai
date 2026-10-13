@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Check, Flame, Sparkles, Volume2 } from "lucide-react";
+import { ArrowRight, Check, Flame, Sparkles, Volume2, Zap } from "lucide-react";
 import mathDiscussionImage from "../assets/math-discussion.jpg";
 import learningInPracticeImage from "../assets/learning-in-practice.jpg";
 import Navbar from "../components/Navbar";
@@ -146,7 +146,7 @@ function Home() {
             </h1>
 
             <p className="mt-6 max-w-xl text-base leading-8 text-slate-300 sm:text-lg">
-              MathMind AI gives students a clear next step, a patient tutor, and practice that grows with every problem they solve.
+              Learn maths by solving real-world problems, race the clock in Math Sprint, and get patient, step-by-step help from an AI tutor whenever you get stuck.
             </p>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -156,6 +156,7 @@ function Home() {
                 ) : (
                   <>
                     <Link to="/dashboard" className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-7 py-3.5 text-center font-semibold shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:bg-indigo-400">Go to Dashboard <ArrowRight size={16} aria-hidden="true" /></Link>
+                    <Link to="/quiz" className="math-sprint-btn inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3.5 text-center font-semibold transition"><Zap size={16} aria-hidden="true" /> Play Math Sprint</Link>
                     <Link to="/lessons" className="btn-secondary rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 text-center font-semibold transition hover:bg-white/10">Explore Lessons</Link>
                   </>
                 )

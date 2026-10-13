@@ -40,8 +40,6 @@ const createMailer = () => {
 
 const registerUser = async (req, res) => {
   try {
-    console.log("REGISTER BODY:", req.body);
-
     const {
       firstName,
       lastName,
@@ -50,15 +48,26 @@ const registerUser = async (req, res) => {
     } = req.body;
 
     // Check required fields
-    if (!firstName || !lastName || !email || !password) {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedFirstName = String(firstName || "").trim();
+    const normalizedLastName = String(lastName || "").trim();
+
+    if (!normalizedFirstName || !normalizedLastName || !normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "Please fill all required fields",
       });
     }
 
+    if (String(password).length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
     // Check existing user
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
       return res.status(400).json({
@@ -72,9 +81,9 @@ const registerUser = async (req, res) => {
 
     // Create user
     const user = await User.create({
-      firstName,
-      lastName,
-      email,
+      firstName: normalizedFirstName,
+      lastName: normalizedLastName,
+      email: normalizedEmail,
       password: hashedPassword,
     });
 
@@ -95,7 +104,6 @@ const registerUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Registration failed",
-      error: error.message,
     });
   }
 };
@@ -103,15 +111,16 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password, timeZone } = req.body;
+    const normalizedEmail = String(email || "").trim().toLowerCase();
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "Please enter email and password",
       });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(401).json({
@@ -186,7 +195,6 @@ const loginUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Login failed",
-      error: error.message,
     });
   }
 };

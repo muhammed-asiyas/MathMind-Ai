@@ -8,6 +8,7 @@ const apiBaseUrl = /\/api$/i.test(trimmedBaseUrl)
 
 const api = axios.create({
   baseURL: apiBaseUrl,
+  timeout: 15000,
   headers: {
     "Content-Type": "application/json",
   },

@@ -20,13 +20,23 @@ const topicSchema = new mongoose.Schema(
 
     difficulty: {
       type: String,
-      enum: ["Beginner", "Intermediate", "Advanced"],
+      enum: ["Foundation", "Beginner", "Intermediate", "Advanced"],
       default: "Beginner",
     },
 
     order: {
       type: Number,
       default: 0,
+    },
+
+    stageNumber: {
+      type: Number,
+      default: 1,
+    },
+
+    requiredCorrectToUnlock: {
+      type: Number,
+      default: 3,
     },
   },
   {
