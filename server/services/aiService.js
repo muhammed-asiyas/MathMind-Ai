@@ -251,10 +251,110 @@ const askWithProvider = async (question) => {
   return { answer: String(result.answer), steps: Array.isArray(result.steps) ? result.steps.slice(0, 4).map(String) : [], alternatives: Array.isArray(result.alternatives) ? result.alternatives.slice(0, 2).map((alternative) => ({ title: String(alternative.title || "Another method"), steps: Array.isArray(alternative.steps) ? alternative.steps.slice(0, 4).map(String) : [] })) : [] };
 };
 
-const recognizeHandwriting = async (imageDataUrl) => {
-  if (!process.env.OPENAI_API_KEY) {
-    const error = new Error("Handwriting recognition is not configured. Please type your answer instead.");
+const generatePracticeQuestions = async ({ lesson, difficulty }) => {
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.startsWith("your_")) {
+    const error = new Error("AI practice generation is not configured.");
     error.statusCode = 503;
+    error.clientMessage = "AI practice is unavailable until an AI provider key is configured. Your regular lesson questions are still available.";
+    throw error;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45000);
+
+  try {
+    const response = await fetch(process.env.AI_API_URL || "https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: process.env.AI_MODEL || "gpt-4o-mini",
+        temperature: 0.4,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: "You create accurate middle-school mathematics practice. Return only JSON with a questions array containing exactly 5 objects. Each object must contain prompt, answer, hint, and explanation strings. Make all 5 questions distinct, self-contained, solvable, and directly about the supplied lesson. Match the requested difficulty: Beginner uses one familiar step, Intermediate combines two ideas or steps, Hard uses multi-step or real-world reasoning appropriate to middle school. Calculate and independently check every answer before returning it. Answers must be short plain values suitable for exact numeric or text checking, without working. Hints should guide without giving away the answer. Explanations should show a concise, correct solution. Do not use LaTeX, Markdown, or questions requiring a diagram.",
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              subject: "middle-school mathematics",
+              topic: lesson.topicTitle,
+              lesson: lesson.title,
+              lessonDescription: lesson.description,
+              lessonContent: lesson.content,
+              difficulty,
+              instruction: "Create new question contexts and values; do not copy a worked example verbatim.",
+            }),
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const error = new Error(`AI practice provider returned HTTP ${response.status}`);
+      error.statusCode = response.status === 429 ? 503 : 502;
+      error.clientMessage = response.status === 429
+        ? "AI practice is temporarily rate-limited. Please wait a moment and try again."
+        : "AI practice could not be generated right now. Please try again.";
+      throw error;
+    }
+
+    const payload = await response.json();
+    const content = payload.choices?.[0]?.message?.content;
+    if (typeof content !== "string" || !content.trim()) {
+      throw new Error("AI practice provider returned an empty response");
+    }
+
+    const parsedContent = content.replace(/^```(?:json)?\s*|\s*```$/gi, "").trim();
+    const result = JSON.parse(parsedContent);
+    if (!Array.isArray(result.questions) || result.questions.length !== 5) {
+      throw new Error("AI practice provider returned an invalid question set");
+    }
+
+    const questions = result.questions.map((question) => {
+      const cleanText = (value, field) => {
+        if (typeof value !== "string" || !value.trim() || value.length > 600) {
+          throw new Error(`AI practice provider returned an invalid ${field}`);
+        }
+        return value.trim();
+      };
+
+      return {
+        prompt: cleanText(question.prompt, "question"),
+        answer: cleanText(question.answer, "answer"),
+        hint: cleanText(question.hint, "hint"),
+        explanation: cleanText(question.explanation, "explanation"),
+      };
+    });
+    const uniquePrompts = new Set(questions.map((question) => question.prompt.toLowerCase().replace(/[^a-z0-9]/g, "")));
+    if (uniquePrompts.size !== questions.length) {
+      throw new Error("AI practice provider returned repeated questions");
+    }
+
+    return questions;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      const timeoutError = new Error("AI practice generation timed out");
+      timeoutError.statusCode = 504;
+      timeoutError.clientMessage = "AI practice took too long to generate. Please try again.";
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const recognizeHandwriting = async (imageDataUrl) => {
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.startsWith("your_")) {
+    const error = new Error("Handwriting recognition is not configured. Add OPENAI_API_KEY to the server environment and restart the server.");
+    error.statusCode = 503;
+    error.clientMessage = error.message;
     throw error;
   }
 
@@ -265,7 +365,7 @@ const recognizeHandwriting = async (imageDataUrl) => {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: process.env.AI_VISION_MODEL || process.env.AI_MODEL || "gpt-4o-mini",
+      model: process.env.AI_VISION_MODEL || "gpt-4o-mini",
       temperature: 0,
       response_format: { type: "json_object" },
       messages: [
@@ -284,13 +384,32 @@ const recognizeHandwriting = async (imageDataUrl) => {
     }),
   });
 
-  if (!response.ok) throw new Error(`AI provider returned ${response.status} for handwriting recognition`);
+  if (!response.ok) {
+    const providerError = await response.json().catch(() => ({}));
+    const providerMessage = providerError.error?.message || "";
+    const error = new Error(`Handwriting recognition provider returned HTTP ${response.status}${providerMessage ? `: ${providerMessage}` : ""}`);
+    error.statusCode = 502;
+    error.clientMessage = response.status === 401 || response.status === 403
+      ? "Handwriting recognition was rejected by the AI provider. Check the server API key and account permissions."
+      : response.status === 404
+        ? "The handwriting AI model or API endpoint was not found. Check AI_VISION_MODEL and AI_API_URL."
+        : response.status === 400
+          ? "The handwriting AI request was rejected. Set AI_VISION_MODEL to a vision-capable model supported by AI_API_URL."
+          : response.status === 429
+            ? "The handwriting AI provider is rate-limited or out of quota. Check your provider account."
+            : "Handwriting recognition is temporarily unavailable. Please try again.";
+    throw error;
+  }
   const payload = await response.json();
   const content = payload.choices?.[0]?.message?.content;
   if (typeof content !== "string" || !content.trim()) throw new Error("AI provider returned an empty handwriting transcription");
   const parsedContent = content.replace(/^```(?:json)?\s*|\s*```$/gi, "").trim();
   const result = JSON.parse(parsedContent);
-  if (typeof result.recognizedText !== "string") throw new Error("AI provider returned an invalid handwriting transcription");
+  if (typeof result.recognizedText !== "string") {
+    const error = new Error("AI provider returned an invalid handwriting transcription");
+    error.clientMessage = "The handwriting AI returned an unreadable response. Please try writing the answer again.";
+    throw error;
+  }
   return { recognizedText: result.recognizedText.trim().slice(0, 200) };
 };
 
@@ -305,4 +424,4 @@ const askTutor = async (question) => {
   return solveMathQuestion(question);
 };
 
-module.exports = { askTutor, recognizeHandwriting };
+module.exports = { askTutor, generatePracticeQuestions, recognizeHandwriting };

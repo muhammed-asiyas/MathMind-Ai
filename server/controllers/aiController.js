@@ -1,5 +1,7 @@
 const { askAgent } = require("../services/aiAgentService");
-const { recognizeHandwriting } = require("../services/aiService");
+const mongoose = require("mongoose");
+const Lesson = require("../models/Lesson");
+const { generatePracticeQuestions, recognizeHandwriting } = require("../services/aiService");
 
 const askAI = async (req, res) => {
   try {
@@ -12,6 +14,45 @@ const askAI = async (req, res) => {
   } catch (error) {
     console.error("ASK AI ERROR:", error);
     return res.status(500).json({ success: false, message: "The AI tutor is temporarily unavailable." });
+  }
+};
+
+const generatePractice = async (req, res) => {
+  try {
+    const { lessonId, difficulty } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(lessonId)) {
+      return res.status(400).json({ success: false, message: "Choose a valid lesson before generating practice." });
+    }
+    if (!["Beginner", "Intermediate", "Hard"].includes(difficulty)) {
+      return res.status(400).json({ success: false, message: "Choose a valid practice difficulty." });
+    }
+
+    const lesson = await Lesson.findById(lessonId).populate("topic", "title");
+    if (!lesson) {
+      return res.status(404).json({ success: false, message: "Lesson not found. Choose a lesson and try again." });
+    }
+
+    const questions = await generatePracticeQuestions({
+      lesson: {
+        title: lesson.title,
+        topicTitle: lesson.topic?.title || "Mathematics",
+        description: lesson.description,
+        content: lesson.content,
+      },
+      difficulty,
+    });
+    return res.status(200).json({
+      success: true,
+      lesson: lesson.title,
+      difficulty,
+      questions: questions.map((question, questionIndex) => ({ ...question, questionIndex, difficulty })),
+    });
+  } catch (error) {
+    console.error("GENERATE AI PRACTICE ERROR:", error);
+    return res.status(error.statusCode || 502).json({
+      success: false,
+      message: error.clientMessage || "AI practice could not be generated right now. Please try again.",
+    });
   }
 };
 
@@ -35,11 +76,9 @@ const recognizeHandwritingController = async (req, res) => {
   } catch (error) {
     console.error("HANDWRITING RECOGNITION ERROR:", error);
     const statusCode = error.statusCode || 502;
-    const message = statusCode === 503
-      ? error.message
-      : "Handwriting recognition is temporarily unavailable. Please type your answer instead.";
+    const message = error.clientMessage || "Handwriting recognition is temporarily unavailable. Please type your answer instead.";
     return res.status(statusCode).json({ success: false, message });
   }
 };
 
-module.exports = { askAI, recognizeHandwriting: recognizeHandwritingController };
+module.exports = { askAI, generatePractice, recognizeHandwriting: recognizeHandwritingController };

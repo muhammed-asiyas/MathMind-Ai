@@ -2,21 +2,24 @@ const mongoose = require("mongoose");
 const Question = require("../models/Question");
 const Lesson = require("../models/Lesson");
 const { getLessonQuestions: getQuestionBankForLesson, resolveQuestionSetKey } = require("../services/lessonQuestionBank");
+const { resolveTopic } = require("../utils/topicResolver");
 
 const syncTopicQuestions = async (req, res) => {
 	try {
 		const { topic, questions } = req.body;
+		const resolvedTopic = await resolveTopic(topic);
 
-		if (!mongoose.Types.ObjectId.isValid(topic) || !Array.isArray(questions) || questions.length === 0) {
+		if (!resolvedTopic || !Array.isArray(questions) || questions.length === 0) {
 			return res.status(400).json({ success: false, message: "Topic questions are invalid" });
 		}
 
+		const topicId = resolvedTopic._id;
 		const validQuestions = questions.slice(0, 15).map((question, index) => ({
 			updateOne: {
-				filter: { topic, questionIndex: index },
+				filter: { topic: topicId, questionIndex: index },
 				update: {
 					$set: {
-						topic,
+						topic: topicId,
 						questionIndex: index,
 						prompt: String(question.prompt || "").trim(),
 						answer: String(question.answer || "").trim(),
@@ -32,7 +35,7 @@ const syncTopicQuestions = async (req, res) => {
 		}
 
 		await Question.bulkWrite(validQuestions);
-		const storedQuestions = await Question.find({ topic }).sort({ questionIndex: 1 });
+		const storedQuestions = await Question.find({ topic: topicId }).sort({ questionIndex: 1 });
 
 		return res.status(200).json({ success: true, questions: storedQuestions });
 	} catch (error) {
@@ -43,11 +46,12 @@ const syncTopicQuestions = async (req, res) => {
 
 const getTopicQuestions = async (req, res) => {
 	try {
-		if (!mongoose.Types.ObjectId.isValid(req.params.topicId)) {
-			return res.status(400).json({ success: false, message: "Invalid topic ID" });
+		const topic = await resolveTopic(req.params.topicId);
+		if (!topic) {
+			return res.status(404).json({ success: false, message: "Topic not found" });
 		}
 
-		const questions = await Question.find({ topic: req.params.topicId }).sort({ questionIndex: 1 });
+		const questions = await Question.find({ topic: topic._id }).sort({ questionIndex: 1 });
 		return res.status(200).json({ success: true, questions });
 	} catch (error) {
 		console.error("GET QUESTIONS ERROR:", error);
@@ -57,13 +61,12 @@ const getTopicQuestions = async (req, res) => {
 
 const getDailyTopicQuestion = async (req, res) => {
 	try {
-		const { topicId } = req.params;
-
-		if (!mongoose.Types.ObjectId.isValid(topicId)) {
-			return res.status(400).json({ success: false, message: "Invalid topic ID" });
+		const topic = await resolveTopic(req.params.topicId);
+		if (!topic) {
+			return res.status(404).json({ success: false, message: "Topic not found" });
 		}
 
-		const questions = await Question.find({ topic: topicId }).sort({ questionIndex: 1 });
+		const questions = await Question.find({ topic: topic._id }).sort({ questionIndex: 1 });
 		if (questions.length === 0) {
 			return res.status(404).json({ success: false, message: "No questions found for this topic" });
 		}
@@ -92,8 +95,23 @@ const getLessonQuestions = async (req, res) => {
 
 		// The lesson owns its pack. The explicit key keeps similarly named subtopics
 		// independent, while the resolver supports older records without a key.
-		const questionSetKey = lesson.questionSetKey || resolveQuestionSetKey(lesson.title, lesson.topic?.title, lesson.order);
-		const generatedQuestions = getQuestionBankForLesson(questionSetKey).slice(0, 45);
+		let questionSetKey = lesson.questionSetKey;
+		let generatedQuestions = getQuestionBankForLesson(questionSetKey);
+		if (generatedQuestions.length === 0) {
+			questionSetKey = resolveQuestionSetKey(lesson.title, lesson.topic?.title, lesson.order);
+			generatedQuestions = getQuestionBankForLesson(questionSetKey);
+			if (generatedQuestions.length > 0 && lesson.questionSetKey !== questionSetKey) {
+				lesson.questionSetKey = questionSetKey;
+				await lesson.save();
+			}
+		}
+		if (generatedQuestions.length === 0) {
+			return res.status(422).json({
+				success: false,
+				message: "Practice questions are not configured for this lesson yet.",
+			});
+		}
+		generatedQuestions = generatedQuestions.slice(0, 45);
 		let questions = await Question.find({ lesson: lesson._id }).sort({ questionIndex: 1 });
 
 		const writes = generatedQuestions.map((question) => ({
@@ -101,7 +119,7 @@ const getLessonQuestions = async (req, res) => {
 				filter: { lesson: lesson._id, questionIndex: question.questionIndex },
 				update: {
 					$set: {
-						topic: lesson.topic._id,
+						topic: lesson.topic?._id || lesson.topic,
 						lesson: lesson._id,
 						questionIndex: question.questionIndex,
 						difficulty: question.difficulty,

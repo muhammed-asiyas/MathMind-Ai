@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
@@ -206,6 +206,23 @@ const defaultTopicStages = [
   },
 ];
 
+const normalizeDisplayName = (value) => String(value || "")
+  .trim()
+  .toLowerCase()
+  .replace(/&/g, " and ")
+  .replace(/[^a-z0-9]+/g, " ")
+  .trim();
+
+function getUniqueLessonsByTitle(lessonItems) {
+  const seenTitles = new Set();
+  return lessonItems.filter((lesson) => {
+    const title = normalizeDisplayName(lesson.title);
+    if (!title || seenTitles.has(title)) return false;
+    seenTitles.add(title);
+    return true;
+  });
+}
+
 function Lessons() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -216,10 +233,22 @@ function Lessons() {
   const [topics, setTopics] = useState([]);
   const [roadmapData, setRoadmapData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [roadmapError, setRoadmapError] = useState("");
   const [viewMode, setViewMode] = useState("roadmap"); // "roadmap" | "grid"
   const [lockedModalStage, setLockedModalStage] = useState(null);
 
   const isAdmin = user?.role === "admin";
+
+  const refreshRoadmap = useCallback(async () => {
+    try {
+      const response = await api.get("/progress/roadmap");
+      setRoadmapData(response.data?.roadmap || []);
+      setRoadmapError("");
+    } catch (err) {
+      console.error("ROADMAP REFRESH ERROR:", err);
+      setRoadmapError(err.response?.data?.message || "Could not refresh your roadmap progress.");
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -228,8 +257,8 @@ function Lessons() {
       try {
         const [lessonsRes, topicsRes, roadmapRes] = await Promise.all([
           api.get("/lessons"),
-          api.get("/topics").catch(() => ({ data: { topics: [] } })),
-          api.get("/progress/roadmap").catch(() => ({ data: { roadmap: [] } })),
+          api.get("/topics"),
+          api.get("/progress/roadmap"),
         ]);
 
         const fetchedLessons = lessonsRes.data?.lessons || [];
@@ -239,18 +268,49 @@ function Lessons() {
         setLessons(fetchedLessons);
         setTopics(fetchedTopics);
         setRoadmapData(fetchedRoadmap);
+        setRoadmapError("");
       } catch (err) {
         console.error("LESSONS FETCH ERROR:", err);
+        setRoadmapError(err.response?.data?.message || "Could not load your roadmap progress. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+
+    const refreshProgress = () => {
+      if (document.visibilityState !== "visible") return;
+      refreshRoadmap();
+    };
+
+    window.addEventListener("focus", refreshProgress);
+    document.addEventListener("visibilitychange", refreshProgress);
+    return () => {
+      window.removeEventListener("focus", refreshProgress);
+      document.removeEventListener("visibilitychange", refreshProgress);
+    };
+  }, [refreshRoadmap]);
+
+  // Prefer the topic record with the most associated lessons when legacy duplicates exist.
+  const uniqueTopicsByTitle = new Map();
+  for (const topic of topics.length > 0 ? topics : defaultTopicStages) {
+    const titleKey = normalizeDisplayName(topic.title);
+    const topicId = topic._id || topic.id;
+    const lessonCount = lessons.filter(
+      (lesson) => String(lesson.topic?._id || lesson.topic) === String(topicId)
+    ).length;
+    const existingTopic = uniqueTopicsByTitle.get(titleKey);
+    if (!existingTopic || lessonCount > existingTopic.lessonCount) {
+      uniqueTopicsByTitle.set(titleKey, { topic, lessonCount });
+    }
+  }
+  const uniqueTopics = Array.from(uniqueTopicsByTitle.values())
+    .map(({ topic }) => topic)
+    .sort((first, second) => (first.order || 0) - (second.order || 0));
 
   // Merge topic data with roadmap lock & progress states
-  const groupedStages = (topics.length > 0 ? topics : defaultTopicStages).map((t, idx) => {
+  const groupedStages = uniqueTopics.map((t, idx) => {
     const topicId = t._id || t.id;
     const roadmapItem = roadmapData.find((r) => String(r.topicId) === String(topicId));
 
@@ -264,12 +324,12 @@ function Lessons() {
       : idx === 0;
 
     const isCompleted = roadmapItem ? Boolean(roadmapItem.isCompleted) : false;
-    const correctCount = roadmapItem?.correctCount || 0;
+    const correctCount = roadmapItem?.correctCount ?? 0;
     const requiredCorrect = roadmapItem?.requiredCorrect || t.requiredCorrectToUnlock || 3;
-    const progressPercent = roadmapItem?.progressPercent || Math.min(100, Math.round((correctCount / requiredCorrect) * 100));
+    const progressPercent = Math.min(100, Math.round((correctCount / requiredCorrect) * 100));
 
     // Prerequisite info if locked
-    const prevTopic = idx > 0 ? (topics[idx - 1] || defaultTopicStages[idx - 1]) : null;
+    const prevTopic = idx > 0 ? uniqueTopics[idx - 1] : null;
     const prerequisite = roadmapItem?.prerequisite || (!isUnlocked && prevTopic ? {
       topicId: prevTopic._id || prevTopic.id,
       stageNumber: prevTopic.stageNumber || idx,
@@ -277,9 +337,9 @@ function Lessons() {
       requiredCorrect: prevTopic.requiredCorrectToUnlock || 3,
     } : null);
 
-    const topicLessons = lessons.filter(
+    const topicLessons = getUniqueLessonsByTitle(lessons.filter(
       (l) => String(l.topic?._id || l.topic) === String(topicId)
-    );
+    ));
 
     return {
       id: topicId,
@@ -295,7 +355,7 @@ function Lessons() {
       requiredCorrect,
       progressPercent,
       prerequisite,
-      lessons: topicLessons.length > 0 ? topicLessons : (t.lessons || [
+      lessons: topicLessons.length > 0 ? topicLessons : getUniqueLessonsByTitle(t.lessons || [
         {
           _id: `temp-${topicId}-1`,
           title: `${t.title} Core Concepts`,
@@ -323,11 +383,19 @@ function Lessons() {
 
   // Calculate overall curriculum progression
   const completedStagesCount = groupedStages.filter((s) => s.isCompleted).length;
+  const overallProgressPercent = groupedStages.length > 0
+    ? Math.round(groupedStages.reduce((total, stage) => total + stage.progressPercent, 0) / groupedStages.length)
+    : 0;
   const currentActiveStage = groupedStages.find((s) => s.isUnlocked && !s.isCompleted) || groupedStages[groupedStages.length - 1];
 
   // Filter stages if topic selected
+  const selectedTopic = topics.find(
+    (topic) => String(topic._id || topic.id) === String(selectedTopicId)
+  );
+  const selectedTopicTitle = normalizeDisplayName(selectedTopic?.title);
   const activeStages = selectedTopicId
-    ? groupedStages.filter((stage) => String(stage.id) === String(selectedTopicId))
+    ? groupedStages.filter((stage) => String(stage.id) === String(selectedTopicId)
+      || (selectedTopicTitle && normalizeDisplayName(stage.title) === selectedTopicTitle))
     : groupedStages;
 
   const handleStageClick = (e, stage) => {
@@ -394,6 +462,14 @@ function Lessons() {
         {/* Overall Curriculum Progress Bar */}
         {!loading && (
           <div className="lessons-progress-card mt-8 rounded-3xl border border-emerald-500/20 p-6 shadow-xl backdrop-blur">
+            {roadmapError && (
+              <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                <span>{roadmapError}</span>
+                <button type="button" onClick={refreshRoadmap} className="rounded-lg border border-amber-300/30 px-3 py-1.5 text-xs font-bold transition hover:bg-amber-300/10">
+                  Retry
+                </button>
+              </div>
+            )}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2">
@@ -413,7 +489,7 @@ function Lessons() {
 
               <div className="flex items-center gap-3">
                 <span className="text-xs font-semibold text-slate-400">
-                  {Math.round((completedStagesCount / Math.max(groupedStages.length, 1)) * 100)}% Complete
+                  {overallProgressPercent}% Complete
                 </span>
                 {currentActiveStage && (
                   <Link
@@ -498,7 +574,7 @@ function Lessons() {
         {/* ROUTE MAP ROADMAP VIEW */}
         {!loading && viewMode === "roadmap" && (
           <div className="mt-10 space-y-16">
-            {activeStages.map((stage, stageIndex) => {
+            {activeStages.map((stage) => {
               const isLocked = !stage.isUnlocked;
 
               return (

@@ -1,10 +1,10 @@
-const mongoose = require("mongoose");
 const Progress = require("../models/Progress");
 const DailyProgress = require("../models/DailyProgress");
 const User = require("../models/User");
 const Topic = require("../models/Topic");
 const { getLearningProfile } = require("../services/learningLevelService");
 const { seedInitialData } = require("./topicController");
+const { resolveTopic } = require("../utils/topicResolver");
 
 const getToday = () => new Date().toISOString().slice(0, 10);
 
@@ -14,6 +14,20 @@ const dailyResponse = (dailyProgress, dailyGoal = 10) => ({
 	wrong: dailyProgress?.wrong || 0,
 	limit: dailyGoal,
 });
+
+const getNextStage = async (currentTopic) => {
+	if (!currentTopic) return null;
+
+	const currentOrder = Number.isFinite(currentTopic.order) ? currentTopic.order : 1;
+	const nextTopic = await Topic.findOne({ order: { $gt: currentOrder } }).sort({ order: 1 });
+	if (!nextTopic) return null;
+
+	return {
+		topicId: nextTopic._id,
+		stageNumber: nextTopic.stageNumber,
+		title: nextTopic.title,
+	};
+};
 
 const getDailyProgress = async (req, res) => {
 	try {
@@ -44,7 +58,7 @@ const getRoadmapProgress = async (req, res) => {
 		const userRole = req.user?.role;
 		const isAdmin = userRole === "admin";
 
-		// Ensure topics and lessons are seeded/migrated to 1..5 curriculum
+		// Ensure topics and lessons are seeded/migrated to the complete 1..10 learning path
 		await seedInitialData();
 
 		const topics = await Topic.find().sort({ order: 1 });
@@ -108,13 +122,12 @@ const getRoadmapProgress = async (req, res) => {
 
 const getTopicProgress = async (req, res) => {
 	try {
-		const { topicId } = req.params;
-
-		if (!mongoose.Types.ObjectId.isValid(topicId)) {
-			return res.status(400).json({ success: false, message: "Invalid topic ID" });
+		const topic = await resolveTopic(req.params.topicId);
+		if (!topic) {
+			return res.status(404).json({ success: false, message: "Topic not found" });
 		}
 
-		const progress = await Progress.findOne({ user: req.user.userId, topic: topicId });
+		const progress = await Progress.findOne({ user: req.user.userId, topic: topic._id });
 
 		return res.status(200).json({
 			success: true,
@@ -128,45 +141,55 @@ const getTopicProgress = async (req, res) => {
 
 const saveQuestionProgress = async (req, res) => {
 	try {
-		const { topicId } = req.params;
+		const topic = await resolveTopic(req.params.topicId);
 		const { questionIndex, isCorrect } = req.body;
 
-		if (!mongoose.Types.ObjectId.isValid(topicId)) {
-			return res.status(400).json({ success: false, message: "Invalid topic ID" });
+		if (!topic) {
+			return res.status(404).json({ success: false, message: "Topic not found" });
 		}
 
 		if (!Number.isInteger(questionIndex) || questionIndex < 0 || typeof isCorrect !== "boolean") {
 			return res.status(400).json({ success: false, message: "Question progress is invalid" });
 		}
 
-		const currentTopic = await Topic.findById(topicId);
-		const existingProgress = await Progress.findOne({ user: req.user.userId, topic: topicId });
+		const topicId = topic._id;
+		const currentTopic = topic;
 
-		if (existingProgress?.attemptedQuestions.includes(questionIndex)) {
-			const dailyProgress = await DailyProgress.findOne({ user: req.user.userId, date: getToday() });
-			const user = await User.findById(req.user.userId).select("firstName lastName email role xp level streak dailyGoal");
+		const existingProgress = await Progress.findOne({ user: req.user.userId, topic: topicId });
+		const respondToRepeat = async (progressRecord) => {
+			const wasAlreadyCorrect = progressRecord.correctQuestions.includes(questionIndex);
+			const progress = isCorrect && !wasAlreadyCorrect
+				? await Progress.findOneAndUpdate(
+					{ user: req.user.userId, topic: topicId },
+					{ $addToSet: { correctQuestions: questionIndex } },
+					{ new: true, runValidators: true }
+				)
+				: progressRecord;
+			const requiredToUnlock = currentTopic.requiredCorrectToUnlock || 3;
+			const wasCompleted = (progressRecord.correctQuestions?.length || 0) >= requiredToUnlock;
+			const stageCompleted = (progress.correctQuestions?.length || 0) >= requiredToUnlock;
+			const nextUnlockedStage = stageCompleted ? await getNextStage(currentTopic) : null;
+			const [dailyProgress, user] = await Promise.all([
+				DailyProgress.findOne({ user: req.user.userId, date: getToday() }),
+				User.findById(req.user.userId).select("firstName lastName email role xp level streak dailyGoal"),
+			]);
 
 			return res.status(200).json({
 				success: true,
 				alreadyAttempted: true,
-				progress: existingProgress,
+				progress,
 				daily: dailyResponse(dailyProgress, user?.dailyGoal),
 				scoreChange: 0,
 				user,
-				stageCompleted: (existingProgress.correctQuestions?.length || 0) >= (currentTopic?.requiredCorrectToUnlock || 3),
+				stageCompleted,
+				justUnlockedNext: !wasCompleted && stageCompleted,
+				nextUnlockedStage,
 			});
+		};
+
+		if (existingProgress?.attemptedQuestions.includes(questionIndex)) {
+			return respondToRepeat(existingProgress);
 		}
-
-		const today = getToday();
-		let dailyProgress = await DailyProgress.findOne({ user: req.user.userId, date: today });
-
-		if (!dailyProgress) {
-			dailyProgress = await DailyProgress.create({ user: req.user.userId, date: today });
-		}
-
-		dailyProgress.attempts += 1;
-		dailyProgress[isCorrect ? "correct" : "wrong"] += 1;
-		await dailyProgress.save();
 
 		const update = {
 			$addToSet: { attemptedQuestions: questionIndex },
@@ -176,29 +199,68 @@ const saveQuestionProgress = async (req, res) => {
 			update.$addToSet.correctQuestions = questionIndex;
 		}
 
-		const wasPreviouslyCompleted = (existingProgress?.correctQuestions?.length || 0) >= (currentTopic?.requiredCorrectToUnlock || 3);
+		const wasPreviouslyCompleted = (existingProgress?.correctQuestions?.length || 0) >= (currentTopic.requiredCorrectToUnlock || 3);
+		let progress;
+		try {
+			progress = await Progress.findOneAndUpdate(
+				{ user: req.user.userId, topic: topicId, attemptedQuestions: { $ne: questionIndex } },
+				update,
+				{ new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+			);
+		} catch (error) {
+			if (error.code !== 11000) throw error;
+		}
 
-		const progress = await Progress.findOneAndUpdate(
-			{ user: req.user.userId, topic: topicId },
-			update,
-			{ new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
-		);
+		if (!progress) {
+			const latestProgress = await Progress.findOne({ user: req.user.userId, topic: topicId });
+			if (latestProgress?.attemptedQuestions.includes(questionIndex)) {
+				return respondToRepeat(latestProgress);
+			}
 
-		const requiredToUnlock = currentTopic?.requiredCorrectToUnlock || 3;
+			if (!latestProgress) throw new Error("Progress record was not available after an upsert conflict");
+			progress = await Progress.findOneAndUpdate(
+				{ user: req.user.userId, topic: topicId, attemptedQuestions: { $ne: questionIndex } },
+				update,
+				{ new: true, runValidators: true }
+			);
+			if (!progress) {
+				const latestProgress = await Progress.findOne({ user: req.user.userId, topic: topicId });
+				if (latestProgress?.attemptedQuestions.includes(questionIndex)) {
+					return respondToRepeat(latestProgress);
+				}
+				throw new Error("Progress record was not updated after a concurrent submission");
+			}
+		}
+
+		const today = getToday();
+		const dailyIncrement = {
+			attempts: 1,
+			[isCorrect ? "correct" : "wrong"]: 1,
+		};
+		let dailyProgress;
+		try {
+			dailyProgress = await DailyProgress.findOneAndUpdate(
+				{ user: req.user.userId, date: today },
+				{
+					$inc: dailyIncrement,
+					$setOnInsert: { user: req.user.userId, date: today },
+				},
+				{ new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+			);
+		} catch (error) {
+			if (error.code !== 11000) throw error;
+			dailyProgress = await DailyProgress.findOneAndUpdate(
+				{ user: req.user.userId, date: today },
+				{ $inc: dailyIncrement },
+				{ new: true, runValidators: true }
+			);
+		}
+
+		const requiredToUnlock = currentTopic.requiredCorrectToUnlock || 3;
 		const isNowCompleted = (progress.correctQuestions?.length || 0) >= requiredToUnlock;
 		const justUnlockedNext = !wasPreviouslyCompleted && isNowCompleted;
 
-		let nextUnlockedStage = null;
-		if (justUnlockedNext && currentTopic) {
-			const nextTopic = await Topic.findOne({ order: (currentTopic.order || 1) + 1 });
-			if (nextTopic) {
-				nextUnlockedStage = {
-					topicId: nextTopic._id,
-					stageNumber: nextTopic.stageNumber,
-					title: nextTopic.title,
-				};
-			}
-		}
+		const nextUnlockedStage = isNowCompleted ? await getNextStage(currentTopic) : null;
 
 		const scoreChange = isCorrect ? 10 : -5;
 		const currentUser = await User.findById(req.user.userId).select("firstName lastName email role xp level streak dailyGoal preferredTopic");

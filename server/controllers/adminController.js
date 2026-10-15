@@ -9,9 +9,13 @@ const ONLINE_WINDOW_MS = 90 * 1000;
 const getAdminOverview = async (req, res) => {
   try {
     const onlineSince = new Date(Date.now() - ONLINE_WINDOW_MS);
-    const [studentCount, onlineStudentCount, topicCount, lessonCount, progressCount, recentStudents, topics] = await Promise.all([
+    const [studentCount, onlineStudentCount, onlineStudents, topicCount, lessonCount, progressCount, recentStudents, topics] = await Promise.all([
       User.countDocuments({ role: "student" }),
       User.countDocuments({ role: "student", lastSeenAt: { $gte: onlineSince } }),
+      User.find({ role: "student", lastSeenAt: { $gte: onlineSince } })
+        .select("firstName lastName email lastSeenAt")
+        .sort({ lastSeenAt: -1 })
+        .lean(),
       Topic.countDocuments(),
       Lesson.countDocuments(),
       Progress.countDocuments(),
@@ -32,6 +36,7 @@ const getAdminOverview = async (req, res) => {
     return res.status(200).json({
       success: true,
       metrics: { studentCount, onlineStudentCount, topicCount, lessonCount, progressCount },
+      onlineStudents,
       recentStudents,
       topics,
       lessons,

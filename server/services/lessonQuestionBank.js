@@ -1,3 +1,5 @@
+const { getMiddleSchoolQuestions } = require("./middleSchoolQuestionBank");
+
 const questionBanks = {
   "variables-expressions": [
     ["Evaluate 3a + 2 when a = 4", "14", "Substitute 4 for a, then multiply and add."],
@@ -399,11 +401,13 @@ const getAdditionalQuestions = (questionSetKey) => {
       const width = value + 3;
       add(`A room is ${length} m by ${width} m. Find its area.`, length * width, "Rectangle area is length times width.");
       add(`A garden is ${length} m by ${width} m. Find its perimeter.`, 2 * (length + width), "Add all four sides, or use 2 times length plus width.");
-      add(`Find the area of a triangle with base ${value + 8} cm and height ${value + 4} cm.`, ((value + 8) * (value + 4)) / 2, "Triangle area is base times height divided by 2.");
+      const base = value + 10;
+      const height = value + 4;
+      add(`Find the area of a triangle with base ${base} cm and height ${height} cm.`, (base * height) / 2, "Triangle area is base times height divided by 2.");
     }
   } else if (questionSetKey === "circles-pythagoras") {
     for (let value = 1; value <= 10; value += 1) {
-      const radius = value + 3;
+      const radius = value + 11;
       add(`Using pi = 3, find the circumference of a circle with radius ${radius}.`, 6 * radius, "Circumference is 2 times pi times radius.");
       add(`Using pi = 3, find the area of a circle with radius ${radius}.`, 3 * radius * radius, "Area is pi times radius squared.");
       const leg = value + 3;
@@ -435,8 +439,8 @@ const getAdditionalQuestions = (questionSetKey) => {
       const number = `${value + 3},${value}42`;
       add(`What is the value of the ${value} in ${number}?`, value * 100, "Identify the place occupied by the digit.");
       add(`Calculate ${400 + value * 11} + ${200 + value * 7}.`, 600 + value * 18, "Add ones, tens, and hundreds by place value.");
-      const rounded = 3200 + value * 100;
-      add(`Round ${rounded + 49} to the nearest hundred.`, rounded, "Look at the tens digit to decide whether to round up.");
+      const rounded = 3300 + value * 100;
+      add(`Round ${rounded + 48} to the nearest hundred.`, rounded, "Look at the tens digit to decide whether to round up.");
     }
   } else if (questionSetKey === "multiplication-division") {
     for (let value = 1; value <= 10; value += 1) {
@@ -446,7 +450,7 @@ const getAdditionalQuestions = (questionSetKey) => {
     }
   } else if (questionSetKey === "factors-multiples-gcf-lcm") {
     for (let value = 1; value <= 10; value += 1) {
-      add(`Find the GCF of ${value * 6} and ${value * 9}.`, value * 3, "Find the largest factor shared by both numbers.");
+      add(`Find the GCF of ${value * 7} and ${value * 11}.`, value, "Find the largest factor shared by both numbers.");
       add(`Find the LCM of ${value + 2} and ${(value + 2) * 2}.`, (value + 2) * 2, "The larger number is already a multiple of the smaller one.");
       add(`What is the next multiple of ${value + 3} after ${(value + 3) * 5}?`, (value + 3) * 6, "Add one more group of the number.");
     }
@@ -479,7 +483,25 @@ const getAdditionalQuestions = (questionSetKey) => {
   return questions;
 };
 
+function uniqueQuestionsByPrompt(questions = []) {
+  const seen = new Set();
+  const result = [];
+
+  for (const question of questions) {
+    const [prompt = "", answer, hint] = Array.isArray(question) ? question : [];
+    const key = String(prompt).trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push([prompt, answer, hint]);
+  }
+
+  return result;
+}
+
 function getLessonQuestions(questionSetKey) {
+  const middleSchoolQuestions = getMiddleSchoolQuestions(questionSetKey);
+  if (middleSchoolQuestions) return middleSchoolQuestions;
+
   const questions = questionBanks[questionSetKey] || [];
   const extraQuestions = {
     "variables-expressions": [
@@ -522,10 +544,12 @@ function getLessonQuestions(questionSetKey) {
 
   const additionalQuestions = getAdditionalQuestions(questionSetKey);
   const hardQuestions = hardQuestionBanks[questionSetKey] || additionalQuestions.slice(15);
-  const foundationalQuestions = [...questions, ...extraQuestions, ...additionalQuestions].slice(0, 30);
-  return [...foundationalQuestions, ...hardQuestions].slice(0, 45).map(([prompt, answer, hint], questionIndex) => ({
+  const foundationalQuestions = uniqueQuestionsByPrompt([...questions, ...extraQuestions, ...additionalQuestions]).slice(0, 20);
+  const practiceQuestions = uniqueQuestionsByPrompt([...foundationalQuestions, ...hardQuestions]).slice(0, 30);
+
+  return practiceQuestions.map(([prompt, answer, hint], questionIndex) => ({
     questionIndex,
-    difficulty: questionIndex < 15 ? "Beginner" : questionIndex < 30 ? "Intermediate" : "Hard",
+    difficulty: questionIndex < 15 ? "Beginner" : questionIndex < 25 ? "Intermediate" : "Hard",
     prompt,
     answer,
     hint,
@@ -533,24 +557,39 @@ function getLessonQuestions(questionSetKey) {
 }
 
 function resolveQuestionSetKey(title = "", topicTitle = "", order = 1) {
-  const text = `${topicTitle} ${title}`.toLowerCase().replace(/[-/&]/g, " ");
+  const lessonText = String(title).toLowerCase().replace(/[-/&]/g, " ");
+  const text = `${topicTitle} ${lessonText}`.toLowerCase().replace(/[-/&]/g, " ");
   const titleMatches = [
     "variables-expressions", "one-step-equations", "two-step-equations",
     "angles-lines", "area-perimeter", "circles-pythagoras",
     "equivalent-simplification", "adding-subtracting", "multiplying-dividing",
     "place-value-operations", "multiplication-division", "factors-multiples-gcf-lcm",
     "statistics-data-basics", "statistics-averages-spread", "statistics-probability-charts",
+    "integer-operations", "order-of-operations", "powers-square-roots",
+    "ratios-equivalent", "rates-unit-rates", "proportions-scale",
+    "percent-conversions", "percent-of-amount", "financial-maths",
+    "algebraic-expressions", "patterns-coordinate-rules", "equations-inequalities",
+    "volume-surface-area", "coordinate-geometry-transformations", "data-averages-probability",
   ];
-  const match = titleMatches.find((key) => key.replace(/-/g, " ").split(" ").every((part) => text.includes(part)));
+  const getTitleTokens = (key) => key.replace(/-/g, " ").split(" ").filter((part) => !["of", "and", "the"].includes(part));
+  const lessonMatch = titleMatches.find((key) => getTitleTokens(key).every((part) => lessonText.includes(part)));
+  if (lessonMatch) return lessonMatch;
+
+  const match = titleMatches.find((key) => getTitleTokens(key).every((part) => text.includes(part)));
   if (match) return match;
 
   const groups = [
+    ["inequal", ["algebraic-expressions", "patterns-coordinate-rules", "equations-inequalities"]],
     ["algebra", ["variables-expressions", "one-step-equations", "two-step-equations"]],
     ["geometry", ["angles-lines", "area-perimeter", "circles-pythagoras"]],
     ["fraction", ["equivalent-simplification", "adding-subtracting", "multiplying-dividing"]],
     ["arithmetic", ["place-value-operations", "multiplication-division", "factors-multiples-gcf-lcm"]],
     ["basic", ["place-value-operations", "multiplication-division", "factors-multiples-gcf-lcm"]],
     ["statistic", ["statistics-data-basics", "statistics-averages-spread", "statistics-probability-charts"]],
+    ["integer", ["integer-operations", "order-of-operations", "powers-square-roots"]],
+    ["ratio", ["ratios-equivalent", "rates-unit-rates", "proportions-scale"]],
+    ["percent", ["percent-conversions", "percent-of-amount", "financial-maths"]],
+    ["measurement", ["volume-surface-area", "coordinate-geometry-transformations", "data-averages-probability"]],
   ];
   const group = groups.find(([key]) => text.includes(key));
   const index = Math.max(Number(order || 1) - 1, 0);

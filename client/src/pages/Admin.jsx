@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
-  Activity,
   CheckCircle2,
   LayoutDashboard,
   Plus,
@@ -35,7 +34,7 @@ function Spinner() {
 
 function Admin() {
   // ── Data state ──────────────────────────────────────────────────────────
-  const [overview, setOverview] = useState({ metrics: {}, recentStudents: [], topics: [], lessons: [] });
+  const [overview, setOverview] = useState({ metrics: {}, onlineStudents: [], recentStudents: [], topics: [], lessons: [] });
   const [allStudents, setAllStudents] = useState([]);
 
   // ── Form state ──────────────────────────────────────────────────────────
@@ -229,7 +228,6 @@ function Admin() {
   // ── Derived lists ─────────────────────────────────────────────────────────
   const metrics = [
     ["Students", overview.metrics.studentCount || 0, Users, "text-cyan-300"],
-    ["Online now", overview.metrics.onlineStudentCount || 0, Activity, "text-emerald-300"],
     ["Topics", overview.metrics.topicCount || 0, LayoutDashboard, "text-indigo-300"],
     ["Lessons", overview.metrics.lessonCount || 0, BookOpen, "text-amber-300"],
     ["Progress records", overview.metrics.progressCount || 0, CheckCircle2, "text-emerald-300"],
@@ -360,7 +358,7 @@ function Admin() {
           {/* ══════════════ OVERVIEW ══════════════ */}
           {activeSection === "overview" && (
             <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5" style={{ perspective: "1000px" }}>
+              <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" style={{ perspective: "1000px" }}>
                 {metrics.map(([label, value, Icon, color]) => (
                   <motion.div 
                     key={label} 
@@ -371,16 +369,43 @@ function Admin() {
                   >
                     <div className="flex items-center justify-between" style={{ transform: "translateZ(30px)" }}>
                       <Icon className={color} size={20} />
-                      {label === "Online now" && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/15 bg-emerald-300/[0.08] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300" title="Active within the last 90 seconds">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />Live
-                        </span>
-                      )}
                     </div>
                     <p className="mt-5 text-xs font-bold uppercase tracking-wider text-slate-500" style={{ transform: "translateZ(20px)" }}>{label}</p>
                     <p className="mt-1 text-3xl font-black" style={{ transform: "translateZ(10px)" }}>{loading ? "..." : value}</p>
                   </motion.div>
                 ))}
+              </section>
+
+              <section className="mt-8 rounded-3xl border border-emerald-300/15 bg-emerald-300/[0.04] p-5 sm:p-7">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Live presence</p>
+                    <h2 className="mt-1 text-2xl font-black">Students online now</h2>
+                    <p className="mt-1 text-sm text-slate-400">Active within the last 90 seconds.</p>
+                  </div>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/15 bg-emerald-300/[0.08] px-3 py-1.5 text-xs font-bold text-emerald-300">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" aria-hidden="true" />
+                    {overview.onlineStudents.length} online
+                  </span>
+                </div>
+                <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {overview.onlineStudents.length === 0 ? (
+                    <p className="rounded-xl bg-slate-950/40 p-5 text-sm text-slate-500 sm:col-span-2 lg:col-span-3">
+                      No students are currently online.
+                    </p>
+                  ) : overview.onlineStudents.map((student) => (
+                    <div key={student._id} className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-slate-950/30 px-4 py-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-xs font-black text-emerald-200">
+                        {student.firstName?.[0]}{student.lastName?.[0]}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold">{student.firstName} {student.lastName}</p>
+                        <p className="truncate text-xs text-slate-500">{student.email}</p>
+                      </div>
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" title="Online" aria-label="Online" />
+                    </div>
+                  ))}
+                </div>
               </section>
 
               <section className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">

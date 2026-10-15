@@ -1,6 +1,11 @@
 import axios from "axios";
 
-const configuredBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const isLocalDevelopmentHost = import.meta.env.DEV
+  && typeof window !== "undefined"
+  && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const configuredBaseUrl = isLocalDevelopmentHost
+  ? "http://localhost:5000/api"
+  : import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const trimmedBaseUrl = configuredBaseUrl.replace(/\/+$/, "");
 const apiBaseUrl = /\/api$/i.test(trimmedBaseUrl)
   ? trimmedBaseUrl

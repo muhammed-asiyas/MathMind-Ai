@@ -1,6 +1,7 @@
 const Topic = require("../models/Topic");
 const Lesson = require("../models/Lesson");
 const Progress = require("../models/Progress");
+const middleSchoolStages = require("../data/middleSchoolCurriculum");
 
 const curriculumStages = [
   {
@@ -198,7 +199,27 @@ const curriculumStages = [
       },
     ],
   },
+	...middleSchoolStages,
 ];
+
+const learningPathOrder = [
+  "Basic Maths & Arithmetic",
+  "Fractions & Decimals",
+  "Integers, Powers & Order of Operations",
+  "Ratios, Rates & Proportions",
+  "Percentages & Financial Maths",
+  "Pre-Algebra & Equations",
+  "Algebra, Patterns & Inequalities",
+  "Geometry & Spatial Measurement",
+  "Geometry, Measurement & Data",
+  "Statistics & Probability",
+];
+const learningPathRank = new Map(learningPathOrder.map((title, index) => [title, index]));
+curriculumStages.sort((first, second) => learningPathRank.get(first.title) - learningPathRank.get(second.title));
+curriculumStages.forEach((stage, index) => {
+  stage.order = index + 1;
+  stage.stageNumber = index + 1;
+});
 
 const seedInitialData = async () => {
   try {
@@ -207,7 +228,7 @@ const seedInitialData = async () => {
       let topic = await Topic.findOne({
         $or: [
           { title: stage.title },
-          { title: { $regex: stage.aliasRegex } },
+          ...(stage.aliasRegex ? [{ title: { $regex: stage.aliasRegex } }] : []),
         ],
       });
 

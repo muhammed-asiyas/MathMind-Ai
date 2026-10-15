@@ -9,6 +9,26 @@ import Navbar from "../components/Navbar";
 import Hero3DWrapper from "../components/Hero3DWrapper";
 import LoadingSpinner from "../components/LoadingSpinner";
 
+const DASHBOARD_TOPIC_LIMIT = 4;
+
+function getDashboardTopics(topics) {
+  const seenTitles = new Set();
+
+  return topics
+    .filter((topic) => {
+      const title = String(topic.title || "")
+        .trim()
+        .toLowerCase()
+        .replace(/&/g, " and ")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+      if (!title || seenTitles.has(title)) return false;
+      seenTitles.add(title);
+      return true;
+    })
+    .sort((first, second) => (first.order || 0) - (second.order || 0));
+}
+
 function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,6 +54,8 @@ function Dashboard() {
     Boolean(location.state?.showLoginStreak)
     || Boolean(streakPopupKey && savedStreakPopupDate !== today)
   );
+  const uniqueTopics = getDashboardTopics(topics);
+  const dashboardTopics = uniqueTopics.slice(0, DASHBOARD_TOPIC_LIMIT);
 
   useEffect(() => {
     if (streakPopupKey && !localStorage.getItem(streakPopupKey)) {
@@ -346,6 +368,14 @@ function Dashboard() {
               Mathematics Topics
             </h2>
           </div>
+          {!topicsLoading && uniqueTopics.length > DASHBOARD_TOPIC_LIMIT && (
+            <Link
+              to="/lessons"
+              className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-indigo-400 transition hover:text-indigo-300"
+            >
+              View all topics <ArrowRight size={15} aria-hidden="true" />
+            </Link>
+          )}
 
           {/* Topics loading */}
           {topicsLoading && (
@@ -370,10 +400,10 @@ function Dashboard() {
           )}
 
           {/* Topics */}
-          {!topicsLoading && topics.length > 0 && (
+          {!topicsLoading && dashboardTopics.length > 0 && (
             <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-4" style={{ perspective: "1000px" }}>
 
-              {topics.map((topic, index) => (
+              {dashboardTopics.map((topic, index) => (
                 <motion.div
                   key={topic._id}
                   initial={{ opacity: 0, y: 30, rotateX: -20 }}

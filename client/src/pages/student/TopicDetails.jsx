@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Clock3, Eraser, Keyboard, PenLine, PlayCircle, Sparkles, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Clock3, Eraser, Keyboard, PenLine, PlayCircle, Sparkles, CheckCircle2, WandSparkles } from "lucide-react";
 import api from "../../services/api";
 import VideoPlayer from "../../components/VideoPlayer";
 import LoadingSpinner from "../../components/LoadingSpinner";
@@ -438,7 +438,139 @@ const topicGuideKeys = {
   statistics: ["statistics-data-basics", "statistics-averages-spread", "statistics-probability-charts"],
 };
 
-function getLessonGuide(topicTitle = "", lessonTitle = "", lessonOrder = 1) {
+const middleSchoolLessonGuides = {
+  "integer-operations": {
+    eyebrow: "Middle school maths · Integers",
+    summary: "Use sign rules and number lines to calculate confidently with positive and negative numbers.",
+    idea: "Adding a positive moves right on a number line; adding a negative moves left. Multiplying numbers with opposite signs gives a negative product.",
+    example: "-4 + 9 = 5 because moving 9 places right from -4 lands on 5.",
+    visual: "arithmetic",
+    question: { prompt: "Calculate -4 + 9.", answer: "5", hint: "Start at -4 and move 9 places right." },
+  },
+  "order-of-operations": {
+    eyebrow: "Middle school maths · Number",
+    summary: "Evaluate expressions consistently by following the order of operations.",
+    idea: "Work inside grouping symbols first, then exponents, multiplication and division, and finally addition and subtraction.",
+    example: "2 + 3 × 4 = 2 + 12 = 14.",
+    visual: "arithmetic",
+    question: { prompt: "Evaluate 2 + 3 × 4.", answer: "14", hint: "Multiply before adding." },
+  },
+  "powers-square-roots": {
+    eyebrow: "Middle school maths · Powers",
+    summary: "Connect powers with repeated multiplication and square roots with the inverse operation.",
+    idea: "A square root asks which positive number multiplied by itself gives the value under the root.",
+    example: "√64 = 8 because 8 × 8 = 64.",
+    visual: "arithmetic",
+    question: { prompt: "What is the square root of 81?", answer: "9", hint: "Find the number that multiplied by itself equals 81." },
+  },
+  "ratios-equivalent": {
+    eyebrow: "Middle school maths · Ratios",
+    summary: "Compare quantities and make equivalent ratios by scaling both parts equally.",
+    idea: "A ratio keeps the order of the quantities. Simplify it by dividing both terms by their greatest common factor.",
+    example: "6:9 simplifies to 2:3 after dividing both terms by 3.",
+    visual: "fractions",
+    question: { prompt: "Simplify the ratio 6:9.", answer: "2:3", hint: "Divide both parts by 3." },
+  },
+  "rates-unit-rates": {
+    eyebrow: "Middle school maths · Rates",
+    summary: "Compare speeds, prices, and quantities by finding the amount for one unit.",
+    idea: "A unit rate has a denominator of 1. Divide the quantity by the number of units to find it.",
+    example: "120 kilometres in 2 hours is 60 kilometres per hour.",
+    visual: "arithmetic",
+    question: { prompt: "A car travels 120 km in 2 hours. What is its speed in km/h?", answer: "60", hint: "Divide the distance by the time." },
+  },
+  "proportions-scale": {
+    eyebrow: "Middle school maths · Proportions",
+    summary: "Use equivalent ratios to solve scale and proportional-reasoning problems.",
+    idea: "In a proportion, two ratios are equal. Scale both terms by the same factor to find a missing value.",
+    example: "If 2 maps to 6, then 4 maps to 12 because both parts are doubled.",
+    visual: "fractions",
+    question: { prompt: "Solve x/3 = 8/6.", answer: "4", hint: "Simplify 8/6, then multiply by 3." },
+  },
+  "percent-conversions": {
+    eyebrow: "Middle school maths · Percentages",
+    summary: "Move between fractions, decimals, and percentages to represent the same amount in different ways.",
+    idea: "Percent means per hundred. Multiply a decimal by 100 to convert it to a percentage.",
+    example: "0.25 × 100 = 25%, so 0.25 and 25% are equivalent.",
+    visual: "fractions",
+    question: { prompt: "Write 0.25 as a percentage.", answer: "25%", hint: "Multiply 0.25 by 100." },
+  },
+  "percent-of-amount": {
+    eyebrow: "Middle school maths · Percentages",
+    summary: "Find a percentage of an amount to work out discounts, tax, and percentage change.",
+    idea: "Convert the percentage to a decimal and multiply by the original amount.",
+    example: "15% of 200 is 0.15 × 200 = 30.",
+    visual: "arithmetic",
+    question: { prompt: "Find 15% of 200.", answer: "30", hint: "Calculate 0.15 × 200." },
+  },
+  "financial-maths": {
+    eyebrow: "Middle school maths · Everyday maths",
+    summary: "Use arithmetic, percentages, and unit prices to make informed money decisions.",
+    idea: "A budget tracks money in and money out. Comparing unit prices helps identify the better value.",
+    example: "If you have $50 and spend $18, your remaining balance is $50 - $18 = $32.",
+    visual: "arithmetic",
+    question: { prompt: "You have $50 and spend $18. How much remains?", answer: "32", hint: "Subtract the amount spent from the starting balance." },
+  },
+  "algebraic-expressions": {
+    eyebrow: "Middle school maths · Algebra",
+    summary: "Evaluate and simplify expressions using substitution, like terms, and the distributive property.",
+    idea: "Substitute known values for variables. Combine like terms by adding their coefficients.",
+    example: "3x + 2 when x = 4 is 3 × 4 + 2 = 14.",
+    visual: "algebra",
+    question: { prompt: "Evaluate 3x + 2 when x = 4.", answer: "14", hint: "Replace x with 4, then multiply before adding." },
+  },
+  "patterns-coordinate-rules": {
+    eyebrow: "Middle school maths · Patterns",
+    summary: "Identify how sequences change and represent input-output patterns with rules.",
+    idea: "Look for a consistent change between terms. A rule such as y = 2x + 1 maps each input to an output.",
+    example: "The sequence 4, 7, 10 increases by 3, so the next term is 13.",
+    visual: "algebra",
+    question: { prompt: "A sequence is 4, 7, 10, … What is the next term?", answer: "13", hint: "The sequence increases by 3 each time." },
+  },
+  "equations-inequalities": {
+    eyebrow: "Middle school maths · Equations",
+    summary: "Use inverse operations to solve equations and describe ranges of solutions with inequalities.",
+    idea: "Keep an equation balanced by doing the same operation to both sides. An inequality sign describes how values compare.",
+    example: "3x + 4 = 19 gives 3x = 15, so x = 5.",
+    visual: "algebra",
+    question: { prompt: "Solve 3x + 4 = 19.", answer: "5", hint: "Subtract 4, then divide by 3." },
+  },
+  "volume-surface-area": {
+    eyebrow: "Middle school maths · Measurement",
+    summary: "Measure three-dimensional shapes using volume and surface area.",
+    idea: "Volume counts the cubic units that fill a solid. For a rectangular prism, multiply length, width, and height.",
+    example: "A box measuring 4 × 3 × 2 has volume 24 cubic units.",
+    visual: "geometry",
+    question: { prompt: "Find the volume of a box measuring 4 cm by 3 cm by 2 cm.", answer: "24", hint: "Multiply length, width, and height." },
+  },
+  "coordinate-geometry-transformations": {
+    eyebrow: "Middle school maths · Coordinates",
+    summary: "Locate points on a coordinate plane and understand how transformations move them.",
+    idea: "An ordered pair (x, y) gives horizontal position first and vertical position second. Reflecting across the y-axis changes x to its opposite.",
+    example: "Reflecting (3, 5) across the y-axis gives (-3, 5).",
+    visual: "geometry",
+    question: { prompt: "Reflect the point (3, 5) across the y-axis. Give the new coordinates.", answer: "(-3,5)", hint: "Change the sign of x; keep y the same." },
+  },
+  "data-averages-probability": {
+    eyebrow: "Middle school maths · Data",
+    summary: "Summarize data with averages and use fractions to describe the likelihood of events.",
+    idea: "The mean is the total divided by the number of values. For equally likely outcomes, probability is favourable outcomes divided by total outcomes.",
+    example: "The mean of 4, 6, and 8 is (4 + 6 + 8) ÷ 3 = 6.",
+    visual: "statistics",
+    question: { prompt: "Find the mean of 4, 6, and 8.", answer: "6", hint: "Add the values, then divide by 3." },
+  },
+};
+
+function getLessonGuide(topicTitle = "", lessonTitle = "", lessonOrder = 1, questionSetKey = "") {
+  const middleSchoolGuide = middleSchoolLessonGuides[questionSetKey];
+  if (middleSchoolGuide) {
+    return {
+      ...middleSchoolGuide,
+      title: lessonTitle || "Maths Practice",
+      questions: [middleSchoolGuide.question],
+    };
+  }
+
   const normTitle = String(lessonTitle || "").toLowerCase();
   const normTopic = String(topicTitle || "").toLowerCase();
 
@@ -639,7 +771,11 @@ function HandwritingPad({ disabled, active, onRecognized }) {
         if (recognitionRequestRef.current !== requestId) return;
         setRecognitionStatus({
           state: "error",
-          message: error.response?.data?.message || "Could not recognize handwriting. Please try again.",
+          message: error.response?.data?.message || (
+            error.response
+              ? `Handwriting recognition failed (HTTP ${error.response.status}). Please try again.`
+              : "Could not reach the handwriting service. Check that the server is running and try again."
+          ),
         });
       }
     }, 900);
@@ -753,6 +889,28 @@ function areAnswersEquivalent(submittedAnswer, expectedAnswer) {
     && Math.abs(submittedNumber - expectedNumber) <= 1e-9 * Math.max(1, Math.abs(expectedNumber));
 }
 
+function normalizeTopicIdentifier(value) {
+  return String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+const questionShuffleSessionSeed = Date.now();
+
+function shuffleQuestions(questions, seed) {
+  const shuffled = [...questions];
+  let randomSeed = [...seed].reduce(
+    (value, character) => Math.imul(value ^ character.charCodeAt(0), 16777619) >>> 0,
+    questionShuffleSessionSeed
+  );
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    randomSeed = (Math.imul(randomSeed, 1664525) + 1013904223) >>> 0;
+    const swapIndex = randomSeed % (index + 1);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
+}
+
 function TopicDetails() {
   const { topicId, lessonId: routeLessonId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -763,29 +921,55 @@ function TopicDetails() {
   const [lessons, setLessons] = useState([]);
   const [lessonQuestions, setLessonQuestions] = useState([]);
   const [lessonQuestionLessonId, setLessonQuestionLessonId] = useState("");
+  const [lessonQuestionsError, setLessonQuestionsError] = useState({ lessonId: "", message: "" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [questionIndex, setQuestionIndex] = useState(0);
   const [practiceLevel, setPracticeLevel] = useState("Beginner");
+  const [practiceSession, setPracticeSession] = useState(0);
+  const [aiPracticeSet, setAiPracticeSet] = useState(null);
+  const [aiPracticeResults, setAiPracticeResults] = useState({});
+  const [aiPracticeLoading, setAiPracticeLoading] = useState(false);
+  const [aiPracticeError, setAiPracticeError] = useState("");
   const [answer, setAnswer] = useState("");
   const [answerMode, setAnswerMode] = useState("type");
   const [answerState, setAnswerState] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [showVisualExplanation, setShowVisualExplanation] = useState(false);
   const [topicAttempts, setTopicAttempts] = useState([]);
   const [topicCorrect, setTopicCorrect] = useState([]);
   const [savingProgress, setSavingProgress] = useState(false);
+  const [unlockedStage, setUnlockedStage] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchTopic = async () => {
+      setLoading(true);
+      setError("");
+
       try {
-        const [topicsResponse, lessonsResponse, topicProgressResponse] = await Promise.all([
-          api.get("/topics"),
-          api.get(`/lessons?topicId=${topicId}`).catch(() => ({ data: { lessons: [] } })),
-          api.get(`/progress/${topicId}`).catch(() => ({ data: { progress: {} } })),
+        const topicsResponse = await api.get("/topics");
+        const availableTopics = topicsResponse.data.topics || [];
+        const normalizedTopicId = normalizeTopicIdentifier(topicId);
+        const exactTopic = availableTopics.find((item) => String(item._id) === String(topicId))
+          || availableTopics.find((item) => normalizeTopicIdentifier(item.title) === normalizedTopicId);
+        const matchingTopics = exactTopic ? [] : availableTopics.filter(
+          (item) => normalizedTopicId && normalizeTopicIdentifier(item.title).includes(normalizedTopicId)
+        );
+        const selectedTopic = exactTopic || (matchingTopics.length === 1 ? matchingTopics[0] : null);
+
+        if (!selectedTopic?._id) {
+          throw new Error("This topic could not be found. Return to Lessons and choose a topic to continue.");
+        }
+
+        const canonicalTopicId = encodeURIComponent(selectedTopic._id);
+        const [lessonsResponse, topicProgressResponse] = await Promise.all([
+          api.get(`/lessons?topicId=${canonicalTopicId}`),
+          api.get(`/progress/${canonicalTopicId}`),
         ]);
-        const selectedTopic = (topicsResponse.data.topics || []).find(
-          (item) => item._id === topicId || item.title.toLowerCase().includes(topicId.toLowerCase())
-        ) || { _id: topicId, title: topicId, icon: "book", description: "Mathematics practice and interactive lessons." };
+
+        if (cancelled) return;
 
         setTopic(selectedTopic);
         setLessons(lessonsResponse.data.lessons || []);
@@ -794,23 +978,28 @@ function TopicDetails() {
         setTopicAttempts(progress.attemptedQuestions || []);
         setTopicCorrect(progress.correctQuestions || []);
       } catch (requestError) {
-        setError(requestError.response?.data?.message || "Could not load this topic.");
+        if (!cancelled) {
+          setError(requestError.response?.data?.message || requestError.message || "Could not load this topic.");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchTopic();
+    return () => {
+      cancelled = true;
+    };
   }, [topicId]);
 
   const currentTopicLessons = useMemo(() => {
-    const currentTopicId = String(topicId || "");
+    const currentTopicId = String(topic?._id || "");
 
     return lessons.filter((lesson) => {
       const lessonTopicId = typeof lesson.topic === "string" ? lesson.topic : lesson.topic?._id;
-      return !currentTopicId || String(lessonTopicId || "") === currentTopicId || String(lesson.topic?._id || lesson.topic || "") === currentTopicId;
+      return String(lessonTopicId || "") === currentTopicId;
     });
-  }, [lessons, topicId]);
+  }, [lessons, topic?._id]);
 
   // Find the active lesson object by its ID, then resolve the guide by title
   const activeLessonObject = useMemo(
@@ -822,49 +1011,89 @@ function TopicDetails() {
     const lessonIndex = currentTopicLessons.findIndex(
       (lesson) => (lesson._id || lesson.id) === (activeLessonObject?._id || activeLessonObject?.id)
     );
-    return activeLessonObject?.order > 0 ? activeLessonObject.order : lessonIndex + 1;
+    return Math.max(1, activeLessonObject?.order > 0 ? activeLessonObject.order : lessonIndex + 1);
   }, [currentTopicLessons, activeLessonObject]);
 
+  const activeLessonKey = String(activeLessonObject?._id || activeLessonObject?.id || "");
+
   useEffect(() => {
-    const lessonId = activeLessonObject?._id || activeLessonObject?.id;
+    const lessonId = activeLessonKey;
     if (!lessonId || String(lessonId).startsWith("temp-")) return undefined;
 
     let cancelled = false;
-    api.get(`/quizzes/lessons/${lessonId}/questions`)
+    const encodedLessonId = encodeURIComponent(lessonId);
+    api.get(`/quizzes/lessons/${encodedLessonId}/questions`)
       .then((response) => {
         if (!cancelled) {
-          setLessonQuestions(response.data.questions || []);
+          setLessonQuestions(Array.isArray(response.data.questions) ? response.data.questions : []);
           setLessonQuestionLessonId(String(lessonId));
         }
       })
-      .catch(() => undefined);
+      .catch((requestError) => {
+        if (!cancelled) {
+          setLessonQuestionsError({
+            lessonId: String(lessonId),
+            message: requestError.response?.data?.message
+              || "Could not load this lesson’s question set. You can continue with the lesson practice questions.",
+          });
+        }
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [activeLessonObject]);
+  }, [activeLessonKey]);
 
   // Resolve current active lesson guide & questions using lesson title (not MongoDB ID)
   const guide = useMemo(
-    () => getLessonGuide(topic?.title, activeLessonObject?.title || "", activeLessonOrder),
-    [topic?.title, activeLessonObject?.title, activeLessonOrder]
+    () => getLessonGuide(topic?.title, activeLessonObject?.title || "", activeLessonOrder, activeLessonObject?.questionSetKey || ""),
+    [topic?.title, activeLessonObject?.title, activeLessonObject?.questionSetKey, activeLessonOrder]
   );
 
   const lessonVideoUrl = activeLessonObject?.videoUrl || guide.videoUrl;
 
-  const activeLessonKey = String(activeLessonObject?._id || activeLessonObject?.id || "");
-  const allQuestionBank = lessonQuestionLessonId === activeLessonKey && lessonQuestions.length > 0
-    ? lessonQuestions
-    : guide.questions.map((question, index) => ({
+  const activeLessonQuestionsError = lessonQuestionsError.lessonId === activeLessonKey
+    ? lessonQuestionsError.message
+    : "";
+  const progressQuestionStride = 1_000_000;
+  const lessonQuestionBank = useMemo(
+    () => lessonQuestionLessonId === activeLessonKey && lessonQuestions.length > 0
+      ? lessonQuestions
+      : guide.questions.map((question, index) => ({
+        ...question,
+        questionIndex: index,
+        difficulty: index < 15 ? "Beginner" : index < 30 ? "Intermediate" : "Hard",
+      })),
+    [lessonQuestionLessonId, activeLessonKey, lessonQuestions, guide.questions]
+  );
+  const allQuestionBank = useMemo(
+    () => lessonQuestionBank.map((question) => ({
       ...question,
-      questionIndex: index,
-      difficulty: index < 15 ? "Beginner" : index < 30 ? "Intermediate" : "Hard",
-    }));
-  const questionBank = allQuestionBank.filter((question) => (question.difficulty || "Beginner") === practiceLevel);
+      progressQuestionIndex: activeLessonOrder * progressQuestionStride + question.questionIndex,
+    })),
+    [lessonQuestionBank, activeLessonOrder]
+  );
+  const aiPracticeActive = aiPracticeSet?.lessonId === activeLessonKey
+    && aiPracticeSet?.difficulty === practiceLevel;
+  const questionBank = useMemo(() => {
+    if (aiPracticeActive) return aiPracticeSet.questions;
+
+    const questions = allQuestionBank.filter(
+      (question) => (question.difficulty || "Beginner") === practiceLevel
+    );
+    return shuffleQuestions(questions, `${activeLessonKey}:${practiceLevel}:${practiceSession}`);
+  }, [allQuestionBank, activeLessonKey, practiceLevel, practiceSession, aiPracticeActive, aiPracticeSet]);
   const currentQuestion = questionBank[questionIndex] || questionBank[0];
-  const levelQuestionIndexes = new Set(questionBank.map((question) => question.questionIndex));
-  const levelAttempts = topicAttempts.filter((index) => levelQuestionIndexes.has(index));
-  const levelCorrect = topicCorrect.filter((index) => levelQuestionIndexes.has(index));
+  const levelQuestionIndexes = new Set(questionBank.flatMap((question) => [
+    question.progressQuestionIndex,
+    question.questionIndex,
+  ]));
+  const levelAttempts = aiPracticeActive
+    ? questionBank.filter((question) => aiPracticeResults[question.questionIndex] !== undefined)
+    : topicAttempts.filter((index) => levelQuestionIndexes.has(index));
+  const levelCorrect = aiPracticeActive
+    ? questionBank.filter((question) => aiPracticeResults[question.questionIndex] === true)
+    : topicCorrect.filter((index) => levelQuestionIndexes.has(index));
 
   const progressPercentage = questionBank.length > 0
     ? Math.round((levelCorrect.length / questionBank.length) * 100)
@@ -876,26 +1105,45 @@ function TopicDetails() {
       return;
     }
     const isCorrect = areAnswersEquivalent(answer, currentQuestion.answer);
+    if (aiPracticeActive) {
+      setAiPracticeResults((results) => ({ ...results, [currentQuestion.questionIndex]: isCorrect }));
+      setAnswerState(isCorrect ? "correct" : "try-again");
+      if (isCorrect) playSuccess();
+      return;
+    }
+
     setSavingProgress(true);
     setAnswerState("saving");
+    setSaveError("");
 
     try {
-      const response = await api.post(`/progress/${topicId}/questions`, {
-        questionIndex: currentQuestion.questionIndex,
+      const response = await api.post(`/progress/${encodeURIComponent(topic._id)}/questions`, {
+        questionIndex: currentQuestion.progressQuestionIndex,
         isCorrect,
-      });
+      }, { timeout: 30000 });
       if (response.data.user) {
         updateUser(response.data.user);
       }
       const progress = response.data.progress || {};
       setTopicAttempts(progress.attemptedQuestions || []);
       setTopicCorrect(progress.correctQuestions || []);
+      if (isCorrect && response.data.stageCompleted && response.data.nextUnlockedStage) {
+        setUnlockedStage(response.data.nextUnlockedStage);
+      }
       if (isCorrect) {
         playSuccess();
       }
       setAnswerState(response.data.alreadyAttempted ? "already-attempted" : isCorrect ? "correct" : "try-again");
     } catch (requestError) {
       console.error("SAVE PROGRESS ERROR:", requestError);
+      const serverMessage = requestError.response?.data?.message;
+      setSaveError(
+        serverMessage
+          ? `${serverMessage}${requestError.response?.status ? ` (HTTP ${requestError.response.status})` : ""}`
+          : requestError.code === "ECONNABORTED" || requestError.code === "ETIMEDOUT"
+            ? "The save took too long. Check your connection, then try again."
+            : "The learning service could not be reached. Check your connection and try again."
+      );
       setAnswerState("save-error");
     } finally {
       setSavingProgress(false);
@@ -907,11 +1155,22 @@ function TopicDetails() {
     setAnswerState("");
   }, []);
 
+  useEffect(() => {
+    if (!unlockedStage) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setUnlockedStage(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [unlockedStage]);
+
   const nextQuestion = () => {
     setQuestionIndex((index) => (index + 1) % questionBank.length);
     setAnswer("");
     setAnswerMode("type");
     setAnswerState("");
+    setSaveError("");
     setShowVisualExplanation(false);
   };
 
@@ -920,16 +1179,58 @@ function TopicDetails() {
     setAnswer("");
     setAnswerMode("type");
     setAnswerState("");
+    setSaveError("");
     setShowVisualExplanation(false);
   };
 
   const changePracticeLevel = (level) => {
     setPracticeLevel(level);
+    setPracticeSession((session) => session + 1);
+    setAiPracticeError("");
     setQuestionIndex(0);
     setAnswer("");
     setAnswerMode("type");
     setAnswerState("");
+    setSaveError("");
     setShowVisualExplanation(false);
+  };
+
+  const generateAiPractice = async () => {
+    if (!activeLessonKey || activeLessonKey.startsWith("temp-") || aiPracticeLoading) return;
+
+    setAiPracticeLoading(true);
+    setAiPracticeError("");
+    try {
+      const response = await api.post("/ai/practice", {
+        lessonId: activeLessonKey,
+        difficulty: practiceLevel,
+      }, { timeout: 50000 });
+      const questions = response.data.questions;
+      if (!Array.isArray(questions) || questions.length !== 5) {
+        throw new Error("The tutor returned an incomplete practice set. Please try again.");
+      }
+
+      setAiPracticeSet({
+        lessonId: activeLessonKey,
+        difficulty: practiceLevel,
+        questions,
+      });
+      setAiPracticeResults({});
+      setQuestionIndex(0);
+      setAnswer("");
+      setAnswerMode("type");
+      setAnswerState("");
+      setSaveError("");
+      setShowVisualExplanation(false);
+    } catch (requestError) {
+      setAiPracticeError(
+        requestError.response?.data?.message
+          || requestError.message
+          || "AI practice could not be generated. Please try again."
+      );
+    } finally {
+      setAiPracticeLoading(false);
+    }
   };
 
   if (loading) return <LoadingSpinner fullScreen label="Loading your lesson..." />;
@@ -977,7 +1278,9 @@ function TopicDetails() {
                     setQuestionIndex(0);
                     setAnswer("");
                     setAnswerState("");
+                    setSaveError("");
                     setAnswerMode("type");
+                    setShowVisualExplanation(false);
                   }}
                     className={`motion-button min-w-0 flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition sm:flex-none sm:px-4 sm:text-sm ${
                     isSelected
@@ -1010,6 +1313,11 @@ function TopicDetails() {
           </article>
 
           <div className="topic-practice-workspace motion-surface reveal-on-scroll w-full rounded-3xl border border-emerald-300/15 bg-emerald-300/5 p-4 shadow-2xl sm:p-7 lg:p-8">
+            {activeLessonQuestionsError && (
+              <div role="status" className="mb-5 rounded-xl border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
+                <span className="font-bold">Question bank unavailable.</span> {activeLessonQuestionsError} Using the built-in lesson questions for now.
+              </div>
+            )}
             <div className="flex flex-col gap-5 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-black sm:text-3xl">Practice</h2>
@@ -1060,6 +1368,30 @@ function TopicDetails() {
                   </button>
                 ))}
               </div>
+              <div className="mt-4 flex flex-col gap-3 rounded-xl border border-emerald-300/15 bg-emerald-300/[0.04] p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-bold text-emerald-100">Need more practice?</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">
+                    Generate five fresh {practiceLevel.toLowerCase()} questions for this lesson.
+                    AI practice is for this session and does not change saved XP or mastery.
+                  </p>
+                  {aiPracticeActive && (
+                    <p className="mt-2 text-xs font-semibold text-emerald-300" role="status">
+                      Personalized set · {levelCorrect.length} of {questionBank.length} correct
+                    </p>
+                  )}
+                  {aiPracticeError && <p className="mt-2 text-xs font-semibold text-rose-300" role="alert">{aiPracticeError}</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={generateAiPractice}
+                  disabled={aiPracticeLoading || savingProgress || !activeLessonKey || activeLessonKey.startsWith("temp-")}
+                  className="motion-button inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm font-bold text-emerald-200 transition hover:bg-emerald-300/20 disabled:cursor-wait disabled:opacity-60"
+                >
+                  <WandSparkles size={16} />
+                  {aiPracticeLoading ? "Creating questions..." : aiPracticeActive ? "Make another set" : "Generate AI practice"}
+                </button>
+              </div>
             </div>
             <div className="mt-6 grid items-stretch gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
               <div className="practice-question-card rounded-2xl border border-emerald-300/20 bg-slate-950/45 p-5 sm:p-7">
@@ -1099,13 +1431,19 @@ function TopicDetails() {
                 {answerMode === "type" && (
                   <label className="mt-4 block text-sm font-semibold text-slate-300" htmlFor="practice-final-answer">Your answer</label>
                 )}
-                <input id="practice-final-answer" value={answer} disabled={savingProgress || !currentQuestion} onChange={(event) => { setAnswer(event.target.value); setAnswerState(""); }} onKeyDown={(event) => event.key === "Enter" && checkAnswer()} placeholder={answerMode === "write" ? "Recognized answer appears here" : "e.g. 24 or 3/4"} className="practice-answer-input mt-3 w-full rounded-xl border px-4 py-3.5 text-base outline-none transition placeholder:text-slate-500 focus:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-60" />
+                <input id="practice-final-answer" value={answer} disabled={savingProgress || !currentQuestion} aria-invalid={answerState === "save-error"} aria-describedby={answerState === "save-error" ? "practice-save-error" : undefined} onChange={(event) => { setAnswer(event.target.value); setAnswerState(""); setSaveError(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); checkAnswer(); } }} placeholder={answerMode === "write" ? "Recognized answer appears here" : "e.g. 24 or 3/4"} className="practice-answer-input mt-3 w-full rounded-xl border px-4 py-3.5 text-base outline-none transition placeholder:text-slate-500 focus:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-60" />
                 {answerState === "missing-answer" && <p role="alert" className="mt-3 text-sm font-semibold text-amber-400">Enter your final answer before checking.</p>}
                 {answerState === "saving" && <p role="status" className="mt-3 text-sm font-semibold text-slate-400">Saving your answer...</p>}
-                {answerState === "correct" && <p role="status" className="mt-3 text-sm font-semibold text-emerald-400">Correct! Your progress is saved.</p>}
-                {answerState === "try-again" && <p role="status" className="mt-3 text-sm font-semibold text-amber-400">Not quite. Your attempt is saved. Hint: {currentQuestion?.hint}</p>}
+                {answerState === "correct" && <p role="status" className="mt-3 text-sm font-semibold text-emerald-400">{aiPracticeActive ? "Correct! This answer is counted in your AI practice session." : "Correct! Your progress is saved."}</p>}
+                {answerState === "try-again" && <p role="status" className="mt-3 text-sm font-semibold text-amber-400">{aiPracticeActive ? "Not quite. Try again or use the hint below." : `Not quite. Your attempt is saved. Hint: ${currentQuestion?.hint}`}</p>}
                 {answerState === "already-attempted" && <p role="status" className="mt-3 text-sm font-semibold text-emerald-400">This question was already counted. Repeating it does not change XP or daily progress.</p>}
-                {answerState === "save-error" && <p role="alert" className="mt-3 text-sm font-semibold text-red-400">Could not save this answer. Please try again.</p>}
+                {answerState === "save-error" && <div id="practice-save-error" role="alert" className="mt-4 rounded-xl border border-rose-400/25 bg-rose-400/10 px-4 py-3 text-sm leading-6 text-rose-200"><span className="font-bold">Could not save this answer.</span> {saveError || "Please try again."}</div>}
+                {aiPracticeActive && ["correct", "try-again"].includes(answerState) && currentQuestion?.explanation && (
+                  <div className="mt-4 rounded-xl border border-emerald-300/15 bg-emerald-300/[0.05] px-4 py-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-emerald-200">Worked explanation</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">{currentQuestion.explanation}</p>
+                  </div>
+                )}
                 <div className="mt-5 grid gap-3 sm:flex sm:flex-wrap">
                   <button type="button" disabled={savingProgress || !currentQuestion} onClick={checkAnswer} className="topic-primary motion-button w-full rounded-xl px-6 py-3.5 text-sm font-bold transition disabled:cursor-wait disabled:opacity-60 sm:w-auto">{savingProgress ? "Saving..." : "Check answer"}</button>
                   <button type="button" disabled={questionIndex === 0 || savingProgress || !currentQuestion} onClick={previousQuestion} className="motion-button w-full rounded-xl border border-white/15 px-5 py-3.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">Previous question</button>
@@ -1192,6 +1530,58 @@ function TopicDetails() {
         </section>
 
       </main>
+
+      {unlockedStage && (
+        <div
+          className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/75 p-4 backdrop-blur-sm"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setUnlockedStage(null);
+          }}
+        >
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="stage-unlocked-title"
+            aria-describedby="stage-unlocked-description"
+            className="relative w-full max-w-md overflow-hidden rounded-3xl border border-emerald-300/25 bg-slate-900 shadow-2xl shadow-emerald-950/50"
+          >
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500" />
+            <button
+              type="button"
+              onClick={() => setUnlockedStage(null)}
+              aria-label="Close unlock message"
+              className="absolute right-4 top-4 rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+            >
+              <span aria-hidden="true" className="text-xl leading-none">×</span>
+            </button>
+            <div className="p-7 text-center sm:p-8">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300 shadow-lg shadow-emerald-950/30">
+                <CheckCircle2 size={34} />
+              </div>
+              <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Milestone complete</p>
+              <h2 id="stage-unlocked-title" className="mt-2 text-2xl font-black text-white sm:text-3xl">Next section unlocked!</h2>
+              <p id="stage-unlocked-description" className="mt-3 text-sm leading-6 text-slate-300">
+                Great work. You’ve met the practice goal, and <span className="font-bold text-emerald-300">{unlockedStage.title}</span> is ready for you.
+              </p>
+              <div className="mt-6 grid gap-3">
+                <Link
+                  to={`/topics/${unlockedStage.topicId}`}
+                  className="topic-primary inline-flex items-center justify-center rounded-xl px-5 py-3.5 text-sm font-bold transition hover:-translate-y-0.5"
+                >
+                  Start next section
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setUnlockedStage(null)}
+                  className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+                >
+                  Keep practicing
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ const Lesson = require("../models/Lesson");
 const mongoose = require("mongoose");
 const { seedInitialData } = require("./topicController");
 const { resolveQuestionSetKey } = require("../services/lessonQuestionBank");
+const { resolveTopic } = require("../utils/topicResolver");
 
 const getLessons = async (req, res) => {
   try {
@@ -9,9 +10,14 @@ const getLessons = async (req, res) => {
 
     const { topicId } = req.query;
 
-    const filter = topicId
-      ? { topic: topicId }
-      : {};
+    let filter = {};
+    if (topicId) {
+      const topic = await resolveTopic(topicId);
+      if (!topic) {
+        return res.status(404).json({ success: false, message: "Topic not found" });
+      }
+      filter = { topic: topic._id };
+    }
 
     const lessons = await Lesson.find(filter)
       .populate("topic", "title icon")
