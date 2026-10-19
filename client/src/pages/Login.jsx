@@ -70,7 +70,7 @@ function Login() {
             to="/"
             className="block text-center text-3xl font-black text-indigo-400"
           >
-            MathMind AI
+            Yahya Ai
           </Link>
 
           <h1 className="mt-8 text-center text-3xl font-bold">
