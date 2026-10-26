@@ -949,15 +949,31 @@ function TopicDetails() {
       setError("");
 
       try {
+const clientTopicAliases = {
+  arithmetic: "basicmathsarithmetic",
+  fractions: "fractionsdecimals",
+  algebra: "prealgebraequations",
+  geometry: "geometryspatialmeasurement",
+  statistics: "statisticsprobability",
+};
+
         const topicsResponse = await api.get("/topics");
         const availableTopics = topicsResponse.data.topics || [];
         const normalizedTopicId = normalizeTopicIdentifier(topicId);
+        const aliasedId = clientTopicAliases[normalizedTopicId] || normalizedTopicId;
+
         const exactTopic = availableTopics.find((item) => String(item._id) === String(topicId))
+          || availableTopics.find((item) => normalizeTopicIdentifier(item.title) === aliasedId)
           || availableTopics.find((item) => normalizeTopicIdentifier(item.title) === normalizedTopicId);
+
         const matchingTopics = exactTopic ? [] : availableTopics.filter(
-          (item) => normalizedTopicId && normalizeTopicIdentifier(item.title).includes(normalizedTopicId)
+          (item) => normalizedTopicId && (
+            normalizeTopicIdentifier(item.title).includes(aliasedId) ||
+            aliasedId.includes(normalizeTopicIdentifier(item.title)) ||
+            normalizeTopicIdentifier(item.title).includes(normalizedTopicId)
+          )
         );
-        const selectedTopic = exactTopic || (matchingTopics.length === 1 ? matchingTopics[0] : null);
+        const selectedTopic = exactTopic || (matchingTopics.length > 0 ? matchingTopics[0] : null);
 
         if (!selectedTopic?._id) {
           throw new Error("This topic could not be found. Return to Lessons and choose a topic to continue.");

@@ -35,10 +35,20 @@ const allowedOrigins = new Set([
   ...configuredOrigins,
 ]);
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.has(origin)) return true;
+  // Automatically allow any vercel deployment preview or domain
+  if (/^https:\/\/[a-z0-9-]+(\.vercel\.app)$/i.test(origin) || origin.endsWith(".vercel.app")) {
+    return true;
+  }
+  return false;
+};
+
 // Middleware
 app.use(
   cors({
-    origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)),
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
     credentials: true,
   })
 );

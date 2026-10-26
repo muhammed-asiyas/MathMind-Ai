@@ -14,8 +14,11 @@ const topicAliases = {
 };
 
 const resolveTopic = async (identifier) => {
-	if (typeof identifier === "string" && mongoose.isObjectIdOrHexString(identifier)) {
-		return Topic.findById(identifier);
+	if (!identifier) return null;
+
+	if (typeof identifier === "string" && mongoose.isObjectIdOrHexString(identifier) && identifier.length === 24) {
+		const byId = await Topic.findById(identifier);
+		if (byId) return byId;
 	}
 
 	const rawIdentifier = normalizeTopicName(identifier);
@@ -23,9 +26,18 @@ const resolveTopic = async (identifier) => {
 	if (!normalizedIdentifier) return null;
 
 	const topics = await Topic.find().select("_id title").lean();
-	const matches = topics.filter((topic) => normalizeTopicName(topic.title) === normalizedIdentifier);
+	// Exact normalized title match
+	const exactMatch = topics.find((topic) => normalizeTopicName(topic.title) === normalizedIdentifier);
+	if (exactMatch) return Topic.findById(exactMatch._id);
 
-	return matches.length === 1 ? Topic.findById(matches[0]._id) : null;
+	// Alias or substring match
+	const partialMatch = topics.find((topic) =>
+		normalizeTopicName(topic.title).includes(normalizedIdentifier) ||
+		normalizedIdentifier.includes(normalizeTopicName(topic.title))
+	);
+	if (partialMatch) return Topic.findById(partialMatch._id);
+
+	return null;
 };
 
 module.exports = { resolveTopic };
