@@ -239,14 +239,27 @@ function Lessons() {
 
   const isAdmin = user?.role === "admin";
 
+  const formatRoadmapError = (err) => {
+    const status = err?.response?.status;
+    const msg = err?.response?.data?.message;
+    if (status === 400 || (typeof msg === "string" && msg.toLowerCase().includes("invalid topic"))) {
+      // Backend does not have the /roadmap endpoint deployed yet; gracefully fall back
+      return "";
+    }
+    return msg || "Could not refresh your roadmap progress.";
+  };
+
   const refreshRoadmap = useCallback(async () => {
     try {
       const response = await api.get("/progress/roadmap");
       setRoadmapData(response.data?.roadmap || []);
       setRoadmapError("");
     } catch (err) {
-      console.error("ROADMAP REFRESH ERROR:", err);
-      setRoadmapError(err.response?.data?.message || "Could not refresh your roadmap progress.");
+      const formatted = formatRoadmapError(err);
+      if (formatted) {
+        console.error("ROADMAP REFRESH ERROR:", err);
+        setRoadmapError(formatted);
+      }
     }
   }, []);
 
@@ -270,10 +283,8 @@ function Lessons() {
         setRoadmapData(fetchedRoadmap);
 
         if (roadmapResult.status === "rejected") {
-          console.warn("Roadmap progress could not be loaded:", roadmapResult.reason);
-          setRoadmapError(
-            roadmapResult.reason?.response?.data?.message || "Roadmap progress is temporarily unavailable."
-          );
+          const formatted = formatRoadmapError(roadmapResult.reason);
+          setRoadmapError(formatted);
         } else {
           setRoadmapError("");
         }
