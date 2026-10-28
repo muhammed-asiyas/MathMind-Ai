@@ -32,9 +32,17 @@ function Spinner() {
 
 
 
+const normalizeOverview = (data = {}) => ({
+  metrics: data?.metrics || {},
+  onlineStudents: Array.isArray(data?.onlineStudents) ? data.onlineStudents : [],
+  recentStudents: Array.isArray(data?.recentStudents) ? data.recentStudents : [],
+  topics: Array.isArray(data?.topics) ? data.topics : [],
+  lessons: Array.isArray(data?.lessons) ? data.lessons : [],
+});
+
 function Admin() {
   // ── Data state ──────────────────────────────────────────────────────────
-  const [overview, setOverview] = useState({ metrics: {}, onlineStudents: [], recentStudents: [], topics: [], lessons: [] });
+  const [overview, setOverview] = useState(normalizeOverview({}));
   const [allStudents, setAllStudents] = useState([]);
 
   // ── Form state ──────────────────────────────────────────────────────────
@@ -70,8 +78,8 @@ function Admin() {
     clearFeedback();
     try {
       const { data } = await api.get("/admin/overview");
-      setOverview(data);
-      setLessonForm((current) => current.topic || !data.topics?.[0]?._id
+      setOverview(normalizeOverview(data));
+      setLessonForm((current) => current.topic || !data?.topics?.[0]?._id
         ? current
         : { ...current, topic: data.topics[0]._id });
     } catch (err) {
@@ -98,8 +106,8 @@ function Admin() {
       try {
         const { data } = await api.get("/admin/overview");
         if (!active) return;
-        setOverview(data);
-        setLessonForm((current) => current.topic || !data.topics?.[0]?._id
+        setOverview(normalizeOverview(data));
+        setLessonForm((current) => current.topic || !data?.topics?.[0]?._id
           ? current
           : { ...current, topic: data.topics[0]._id });
       } catch (err) {
@@ -120,7 +128,7 @@ function Admin() {
     const fetchStudents = async () => {
       try {
         const { data } = await api.get("/admin/students");
-        if (active) setAllStudents(data.students || []);
+        if (active) setAllStudents(Array.isArray(data?.students) ? data.students : []);
       } catch (err) {
         if (active) setError(err.response?.data?.message || "Unable to load student list.");
       } finally {
@@ -135,7 +143,7 @@ function Admin() {
     const refreshMetrics = async () => {
       try {
         const { data } = await api.get("/admin/overview");
-        setOverview(data);
+        setOverview(normalizeOverview(data));
       } catch (refreshError) {
         console.error("Unable to refresh admin overview:", refreshError);
       }
@@ -150,7 +158,7 @@ function Admin() {
     e.preventDefault();
     setSaving(true); clearFeedback();
     try {
-      await api.post("/topics", { ...topicForm, order: Number(topicForm.order || overview.topics.length + 1) });
+      await api.post("/topics", { ...topicForm, order: Number(topicForm.order || (overview.topics?.length || 0) + 1) });
       setTopicForm(emptyTopic);
       setMessage("Topic created successfully.");
       await loadOverview();
@@ -226,11 +234,17 @@ function Admin() {
   };
 
   // ── Derived lists ─────────────────────────────────────────────────────────
+  const onlineStudents = overview?.onlineStudents || [];
+  const recentStudents = overview?.recentStudents || [];
+  const topicsList = overview?.topics || [];
+  const lessonsList = overview?.lessons || [];
+  const metricsData = overview?.metrics || {};
+
   const metrics = [
-    ["Students", overview.metrics.studentCount || 0, Users, "text-cyan-300"],
-    ["Topics", overview.metrics.topicCount || 0, LayoutDashboard, "text-indigo-300"],
-    ["Lessons", overview.metrics.lessonCount || 0, BookOpen, "text-amber-300"],
-    ["Progress records", overview.metrics.progressCount || 0, CheckCircle2, "text-emerald-300"],
+    ["Students", metricsData.studentCount || 0, Users, "text-cyan-300"],
+    ["Topics", metricsData.topicCount || 0, LayoutDashboard, "text-indigo-300"],
+    ["Lessons", metricsData.lessonCount || 0, BookOpen, "text-amber-300"],
+    ["Progress records", metricsData.progressCount || 0, CheckCircle2, "text-emerald-300"],
   ];
 
   const navItems = [
@@ -246,17 +260,17 @@ function Admin() {
     { key: "removeLesson", label: "Remove Lesson", icon: FileMinus, color: "text-orange-400" },
   ];
 
-  const filteredStudents = allStudents.filter((s) => {
+  const filteredStudents = (allStudents || []).filter((s) => {
     const q = studentSearch.toLowerCase();
     return !q || [s.firstName, s.lastName, s.email].some((v) => v?.toLowerCase().includes(q));
   });
 
-  const filteredTopics = overview.topics.filter((t) => {
+  const filteredTopics = topicsList.filter((t) => {
     const q = topicSearch.toLowerCase();
     return !q || t.title?.toLowerCase().includes(q);
   });
 
-  const filteredLessons = overview.lessons.filter((l) => {
+  const filteredLessons = lessonsList.filter((l) => {
     const q = lessonSearch.toLowerCase();
     const matchesSearch = !q || l.title?.toLowerCase().includes(q);
     const matchesTopic = !lessonTopicFilter || l.topic?._id === lessonTopicFilter;
@@ -385,15 +399,15 @@ function Admin() {
                   </div>
                   <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/15 bg-emerald-300/[0.08] px-3 py-1.5 text-xs font-bold text-emerald-300">
                     <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" aria-hidden="true" />
-                    {overview.onlineStudents.length} online
+                    {onlineStudents.length} online
                   </span>
                 </div>
                 <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {overview.onlineStudents.length === 0 ? (
+                  {onlineStudents.length === 0 ? (
                     <p className="rounded-xl bg-slate-950/40 p-5 text-sm text-slate-500 sm:col-span-2 lg:col-span-3">
                       No students are currently online.
                     </p>
-                  ) : overview.onlineStudents.map((student) => (
+                  ) : onlineStudents.map((student) => (
                     <div key={student._id} className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-slate-950/30 px-4 py-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-xs font-black text-emerald-200">
                         {student.firstName?.[0]}{student.lastName?.[0]}
@@ -418,9 +432,9 @@ function Admin() {
                     <Users className="text-cyan-300" size={22} />
                   </div>
                   <div className="mt-5 space-y-2">
-                    {overview.recentStudents.length === 0 ? (
+                    {recentStudents.length === 0 ? (
                       <p className="rounded-xl bg-slate-950/40 p-5 text-sm text-slate-500">No student accounts yet.</p>
-                    ) : overview.recentStudents.map((student) => (
+                    ) : recentStudents.map((student) => (
                       <div key={student._id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-950/30 px-4 py-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/20 text-xs font-black text-indigo-200">
                           {student.firstName?.[0]}{student.lastName?.[0]}
@@ -442,13 +456,13 @@ function Admin() {
                   <p className="text-xs font-bold uppercase tracking-wider text-indigo-300">Content inventory</p>
                   <h2 className="mt-1 text-2xl font-black">Topics and lessons</h2>
                   <div className="mt-5 space-y-3">
-                    {overview.topics.map((topic) => (
+                    {topicsList.map((topic) => (
                       <div key={topic._id} className="flex items-center justify-between rounded-xl bg-slate-950/35 px-4 py-3">
                           <span className="flex items-center gap-2 text-sm font-semibold">
                             <IconGlyph name={topic.icon} size={17} className="text-indigo-300" />{topic.title}
                         </span>
                         <span className="text-xs text-slate-500">
-                          {overview.lessons.filter((l) => l.topic?._id === topic._id).length} lessons
+                          {lessonsList.filter((l) => l.topic?._id === topic._id).length} lessons
                         </span>
                       </div>
                     ))}
@@ -609,7 +623,7 @@ function Admin() {
                           <h2 className="text-xl font-black">Remove topic</h2>
                         </div>
                       </div>
-                      <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-bold text-slate-300">{overview.topics.length} topics</span>
+                      <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-bold text-slate-300">{topicsList.length} topics</span>
                     </div>
                     <div className="mb-4 rounded-xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-xs text-amber-200">
                       <span className="flex items-start gap-2"><TriangleAlert size={15} className="mt-0.5 shrink-0" aria-hidden="true" />Removing a topic will also delete all its lessons and student progress for that topic.</span>
@@ -627,7 +641,7 @@ function Admin() {
                             <div className="min-w-0">
                               <p className="truncate text-sm font-bold">{t.title}</p>
                               <p className="text-xs text-slate-500">
-                                {overview.lessons.filter((l) => l.topic?._id === t._id).length} lessons · {t.difficulty}
+                                {lessonsList.filter((l) => l.topic?._id === t._id).length} lessons · {t.difficulty}
                               </p>
                             </div>
                           </div>
@@ -654,7 +668,7 @@ function Admin() {
                     <form onSubmit={handleCreateLesson} className="grid gap-4 md:grid-cols-2">
                       <select required name="topic" value={lessonForm.topic} onChange={updateForm(setLessonForm)} className="admin-input" id="admin-lesson-topic">
                         <option value="">Choose topic</option>
-                        {overview.topics.map((t) => (
+                        {topicsList.map((t) => (
                           <option key={t._id} value={t._id}>{t.icon} {t.title}</option>
                         ))}
                       </select>
@@ -693,7 +707,7 @@ function Admin() {
                           <h2 className="text-xl font-black">Remove lesson</h2>
                         </div>
                       </div>
-                      <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-bold text-slate-300">{overview.lessons.length} lessons</span>
+                      <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-bold text-slate-300">{lessonsList.length} lessons</span>
                     </div>
 
                     {/* Filters */}
@@ -701,7 +715,7 @@ function Admin() {
                       <input type="text" placeholder="Search lessons…" value={lessonSearch} onChange={(e) => setLessonSearch(e.target.value)} className="admin-input" id="admin-lesson-search" />
                       <select value={lessonTopicFilter} onChange={(e) => setLessonTopicFilter(e.target.value)} className="admin-input" id="admin-lesson-filter-topic">
                         <option value="">All topics</option>
-                        {overview.topics.map((t) => (
+                        {topicsList.map((t) => (
                           <option key={t._id} value={t._id}>{t.icon} {t.title}</option>
                         ))}
                       </select>
