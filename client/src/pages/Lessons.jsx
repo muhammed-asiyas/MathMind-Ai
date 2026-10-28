@@ -255,23 +255,31 @@ function Lessons() {
       setLoading(true);
 
       try {
-        const [lessonsRes, topicsRes, roadmapRes] = await Promise.all([
+        const [lessonsResult, topicsResult, roadmapResult] = await Promise.allSettled([
           api.get("/lessons"),
           api.get("/topics"),
           api.get("/progress/roadmap"),
         ]);
 
-        const fetchedLessons = lessonsRes.data?.lessons || [];
-        const fetchedTopics = topicsRes.data?.topics || [];
-        const fetchedRoadmap = roadmapRes.data?.roadmap || [];
+        const fetchedLessons = lessonsResult.status === "fulfilled" ? lessonsResult.value.data?.lessons || [] : [];
+        const fetchedTopics = topicsResult.status === "fulfilled" ? topicsResult.value.data?.topics || [] : [];
+        const fetchedRoadmap = roadmapResult.status === "fulfilled" ? roadmapResult.value.data?.roadmap || [] : [];
 
         setLessons(fetchedLessons);
         setTopics(fetchedTopics);
         setRoadmapData(fetchedRoadmap);
-        setRoadmapError("");
+
+        if (roadmapResult.status === "rejected") {
+          console.warn("Roadmap progress could not be loaded:", roadmapResult.reason);
+          setRoadmapError(
+            roadmapResult.reason?.response?.data?.message || "Roadmap progress is temporarily unavailable."
+          );
+        } else {
+          setRoadmapError("");
+        }
       } catch (err) {
         console.error("LESSONS FETCH ERROR:", err);
-        setRoadmapError(err.response?.data?.message || "Could not load your roadmap progress. Please try again.");
+        setRoadmapError("Could not load lessons. Please try again.");
       } finally {
         setLoading(false);
       }
